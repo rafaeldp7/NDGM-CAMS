@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDGM RFID</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        /* Header – fixed at top, full width, stays when sidebar changes */
+        .header {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            z-index: 10;
+        }
+        .header img {
+            height: 56px;
+            width: auto;
+        }
+        .date {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            line-height: 1.3;
+        }
+        .date h1 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        /* Main area: sidebar + content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            min-height: 0;
+            overflow: hidden;
+        }
+        /* Sidebar – left, fixed width */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: #f5f5f5;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0.5rem 0;
+        }
+        .sidebar-nav li {
+            margin: 0;
+        }
+        .sidebar-nav a {
+            display: block;
+            padding: 0.6rem 1rem;
+            color: #333;
+            text-decoration: none;
+        }
+        .sidebar-nav a:hover {
+            background: #e8e8e8;
+        }
+        .sidebar-nav a.active {
+            background: #d0d0d0;
+            font-weight: 600;
+        }
+        /* Content – right, fills remaining space */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: #fff;
+        }
+        .content-panel {
+            display: none;
+        }
+        .content-panel.active {
+            display: block;
+        }
+        .btn { padding: 0.4rem 0.75rem; border: 1px solid #888; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.9rem; }
+        .btn:hover { background: #eee; }
+        .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .msg { margin-top: 0.5rem; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; }
+        .msg.success { background: #dcfce7; color: #166534; }
+        .msg.error { background: #fee2e2; color: #991b1b; }
+        .scan-form { max-width: 400px; }
+        .scan-form .field { margin-bottom: 0.75rem; }
+        .scan-form label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+        .scan-form input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        .data-table th, .data-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #e5e5e5; }
+        .data-table th { background: #f5f5f5; font-weight: 600; }
+        .panel-toolbar { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .panel-status { color: #666; font-size: 0.9rem; }
+        .scan-result { margin-top: 1rem; padding: 1rem; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 400px; }
+        .scan-result.found { background: #f0fdf4; border-color: #86efac; }
+        .scan-result.not-found { background: #fef2f2; border-color: #fecaca; }
+        .scan-result h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+        .scan-result .line { margin: 0.25rem 0; }
+        .scan-result .register-btn { margin-top: 0.75rem; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 360px; width: 90%; }
+        .modal h3 { margin-bottom: 1rem; }
+        .modal .field { margin-bottom: 0.75rem; }
+        .modal label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+        .modal input, .modal select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+        .modal-actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
+    </style>
+</head>
+<body>
+    <!-- Header – stays fixed when sidebar navigates -->
+    <header class="header">
+        <img src="./assets/logo/notre-dame-logo.png" alt="NDGM RFID">
+        <div class="date">
+            <h1 id="header-date">—</h1>
+            <h1 id="header-time">—</h1>
+        </div>
+    </header>
+
+    <!-- Main: sidebar + content -->
+    <main class="main">
+        <!-- Sidebar (left) -->
+        <aside class="sidebar">
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="#scan" class="nav-link active" data-panel="scan">Scan</a></li>
+                    <li><a href="#logs" class="nav-link" data-panel="logs">Logs</a></li>
+                    <li><a href="#users" class="nav-link" data-panel="users">Users</a></li>
+                    <li><a href="#about" class="nav-link" data-panel="about">About</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Content -->
+        <div class="content">
+            <div id="panel-scan" class="content-panel active">
+                <h2>Scan</h2>
+                <p style="margin-bottom: 1rem;">Type or scan the RFID code, then press <strong>Enter</strong> to check and record.</p>
+                <div class="scan-form">
+                    <form id="scan-form" action="javascript:void(0);" method="post">
+                        <div class="field">
+                            <label for="scan-id-number">RFID / ID Number</label>
+                            <input type="text" id="scan-id-number" placeholder="Type or scan ID then press Enter…" autocomplete="off" autofocus>
+                        </div>
+                    </form>
+                    <div id="scan-msg" class="msg" style="display: none;"></div>
+                    <div id="scan-result" class="scan-result" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div id="panel-logs" class="content-panel">
+                <h2>Logs</h2>
+                <div class="panel-toolbar">
+                    <input type="search" id="logs-search" placeholder="Search name or ID" style="flex:1;padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
+                    <select id="logs-type-filter" style="padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
+                        <option value="all">All</option>
+                        <option value="in">Time In</option>
+                        <option value="out">Time Out</option>
+                    </select>
+                    <button type="button" class="btn" id="btn-refresh-logs">Refresh</button>
+                    <span class="panel-status" id="logs-status" style="margin-left:0.5rem"></span>
+                </div>
+                <div id="logs-list"></div>
+            </div>
+            <div id="panel-users" class="content-panel">
+                <h2>Users</h2>
+                <div class="panel-toolbar">
+                    <input type="search" id="users-search" placeholder="Search name or ID" style="flex:1;padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
+                    <select id="users-role-filter" style="padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
+                        <option value="all">All roles</option>
+                        <option value="user">User</option>
+                        <option value="staff">Staff</option>
+                        <option value="guard">Guard</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="button" class="btn" id="btn-create-user">Create</button>
+                    <button type="button" class="btn" id="btn-refresh-users">Refresh</button>
+                    <span class="panel-status" id="users-status" style="margin-left:0.5rem"></span>
+                </div>
+                <div id="users-list"></div>
+            </div>
+            <div id="panel-about" class="content-panel" >
+                <h2>About</h2>
+                <p>The NDGM RFID System is a lightweight attendance and access logging tool built for scanning RFID or ID numbers, recording time‑in/time‑out events, and managing users and logs.</p>
+
+                <h3>Components</h3>
+                <ul>
+                    <li>Frontend: Electron + HTML/JS UI used for scanning and administration.</li>
+                    <li>API client: bridges the UI to a backend server (configurable base URL).</li>
+                    <li>Server: records logs, stores users, and exposes endpoints (login, register, scan, logs, users).</li>
+                    <li>Database: persistent storage for users and log entries (e.g., MongoDB in the server folder).</li>
+                </ul>
+
+                <h3>How it works</h3>
+                <p>RFID readers typically act like keyboards and send the ID as keystrokes. The UI listens for Enter to submit the scanned value. On submit the client calls the <code>/api/logs/scan</code> endpoint which:</p>
+                <ol>
+                    <li>Checks whether the ID maps to a known user.</li>
+                    <li>If found, records a time‑in or time‑out entry and returns the user and log details.</li>
+                    <li>If not found, the UI offers to register a new user with that ID.</li>
+                </ol>
+
+                <h3>User flows</h3>
+                <ul>
+                    <li>Scan or type an ID, press Enter to record a scan.</li>
+                    <li>Use the <strong>Users</strong> panel to search, create, edit, or delete users.</li>
+                    <li>Use the <strong>Logs</strong> panel to search, filter (In/Out), sort, and review recorded events.</li>
+                </ul>
+
+                <h3>Security & configuration</h3>
+                <p>The client can be configured with an API base URL and uses a bearer token for authenticated endpoints (logs, users). In this development build a local debug API stub is used; point the UI to your running server to enable persistent storage.</p>
+
+                <h3>Troubleshooting</h3>
+                <ul>
+                    <li>If sidebar clicks or inputs do not work, open DevTools (Ctrl+Shift+I) and check the Console for errors.</li>
+                    <li>If scans aren't being recorded, ensure the server API is reachable and that the configured base URL and token are correct.</li>
+                    <li>Use the <strong>Refresh</strong> buttons in Logs and Users to reload data from the server.</li>
+                </ul>
+
+                <p style="margin-top:0.5rem;color:#555;font-size:0.9rem">Developer notes: the UI exposes a debug API stub when the real API isn't loaded to allow local testing. Replace or remove the stub to connect to your actual backend (see <code>js/api.js</code> for the real client).</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Register user modal (when scan finds no user) -->
+    <div id="register-overlay" class="modal-overlay">
+        <div class="modal">
+            <h3>Register user</h3>
+            <div class="field">
+                <label for="reg-name">Name</label>
+                <input type="text" id="reg-name" placeholder="Full name">
+            </div>
+            <div class="field">
+                <label for="reg-idNumber">ID Number</label>
+                <input type="text" id="reg-idNumber" placeholder="ID / RFID number">
+            </div>
+            <div class="field">
+                <label for="reg-role">Role</label>
+                <select id="reg-role">
+                    <option value="user">User</option>
+                    <option value="staff">Staff</option>
+                    <option value="guard">Guard</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div id="reg-msg" class="msg" style="display: none;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="btn-register-submit">Register</button>
+                <button type="button" class="btn" id="btn-register-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+            <!-- User edit/create modal -->
+            <div id="user-modal-overlay" class="modal-overlay">
+                <div class="modal">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                        <h3 id="user-modal-title">User</h3>
+                        <button id="btn-user-modal-close" class="btn" style="padding:0.25rem 0.5rem;">✕</button>
+                    </div>
+                    <div class="field">
+                        <label for="user-name">Name</label>
+                        <input type="text" id="user-name" placeholder="Full name">
+                    </div>
+                    <div class="field">
+                        <label for="user-idNumber">ID Number</label>
+                        <input type="text" id="user-idNumber" placeholder="ID / RFID number">
+                    </div>
+                    <div class="field">
+                        <label for="user-role">Role</label>
+                        <select id="user-role">
+                            <option value="user">User</option>
+                            <option value="staff">Staff</option>
+                            <option value="guard">Guard</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div id="user-msg" class="msg" style="display:none;margin-top:0.5rem"></div>
+                    <div class="modal-actions" style="margin-top:1rem;justify-content:space-between;">
+                        <div>
+                            <button type="button" class="btn btn-primary" id="btn-user-save">Save</button>
+                            <button type="button" class="btn" id="btn-user-cancel">Cancel</button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn" id="btn-user-delete" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- Run date/time first so it works even if api.js fails; always uses local time, optionally syncs online -->
+    <script>
+        (function () {
+            var dateEl = document.getElementById('header-date');
+            var timeEl = document.getElementById('header-time');
+            if (!dateEl || !timeEl) return;
+
+            var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+            function formatDate(d) {
+                return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+            }
+            function formatTime(d) {
+                var h = d.getHours();
+                var m = d.getMinutes();
+                var s = d.getSeconds();
+                var ampm = h >= 12 ? 'PM' : 'AM';
+                var h12 = h % 12 || 12;
+                return h12 + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + ' ' + ampm;
+            }
+
+            var source = 'local';
+            var onlineBaseTime = null;
+            var onlineBaseAt = null;
+
+            function getCurrentTime() {
+                if (source === 'online' && onlineBaseTime && onlineBaseAt) {
+                    return new Date(onlineBaseTime.getTime() + (Date.now() - onlineBaseAt));
+                }
+                return new Date();
+            }
+
+            function render() {
+                try {
+                    var d = getCurrentTime();
+                    dateEl.textContent = formatDate(d);
+                    timeEl.textContent = formatTime(d);
+                } catch (e) {}
+            }
+
+            render();
+            setInterval(render, 1000);
+
+
+        })();
+    </script>
+    <!-- Local debug API stub (allows UI to work without external api.js) -->
+    <script>
+        (function () {
+            console.debug('Loading local NDGM_API stub with sample data');
+
+            // Sample users
+            const _users = [
+                { _id: 'u1', name: 'Alice Johnson', idNumber: 'A1001', role: 'user', dateCreated: new Date(Date.now() - 86400000 * 10).toISOString() },
+                { _id: 'u2', name: 'Bob Santos', idNumber: 'B2002', role: 'staff', dateCreated: new Date(Date.now() - 86400000 * 5).toISOString() },
+                { _id: 'u3', name: 'Guard Maria', idNumber: 'G3003', role: 'guard', dateCreated: new Date(Date.now() - 86400000 * 2).toISOString() },
+            ];
+
+            // Sample logs (some with timeIn/timeOut pairs)
+            const _logs = [
+                { timeIn: new Date(Date.now() - 3600 * 1000 * 5).toISOString(), timeOut: new Date(Date.now() - 3600 * 1000 * 2).toISOString(), userName: 'Alice Johnson', userIdNumber: 'A1001', rfidScannerId: 'SCANNER-1' },
+                { timeIn: new Date(Date.now() - 3600 * 1000 * 26).toISOString(), timeOut: new Date(Date.now() - 3600 * 1000 * 20).toISOString(), userName: 'Bob Santos', userIdNumber: 'B2002', rfidScannerId: 'SCANNER-1' },
+                { timeIn: new Date(Date.now() - 3600 * 1000 * 1).toISOString(), userName: 'Guard Maria', userIdNumber: 'G3003', rfidScannerId: 'SCANNER-2' },
+            ];
+
+            // Last tap timestamps for cooldown protection (per user idNumber)
+            const _lastTaps = {}; // key: idNumber.toLowerCase() => epoch ms
+            const COOLDOWN_MS = 3000; // ignore taps within 3 seconds
+
+            function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+            function findUserByIdNumber(idNumber) {
+                return _users.find(u => (u.idNumber || '').toLowerCase() === (idNumber || '').toLowerCase());
+            }
+
+            window.NDGM_API = {
+                getBase: () => '',
+                setBase: () => {},
+                getToken: () => 'local-debug',
+                setToken: () => {},
+                getStoredUser: () => null,
+                clearAuth: () => {},
+
+                get: (path) => {
+                    console.debug('API GET', path);
+                    if (path && path.indexOf('/api/users') === 0) return Promise.resolve(clone(_users));
+                    if (path && path.indexOf('/api/logs') === 0) return Promise.resolve(clone(_logs));
+                    return Promise.resolve(clone({}));
+                },
+
+                post: (path, body) => {
+                    console.debug('API POST', path, body);
+                    if (path === '/api/auth/register' || path === '/api/users') {
+                        const id = 'u' + (Date.now());
+                        const user = { _id: id, name: body.name, idNumber: body.idNumber, role: body.role || 'user', dateCreated: new Date().toISOString() };
+                        _users.unshift(user);
+                        return Promise.resolve({ user: clone(user) });
+                    }
+                    if (path === '/api/logs/scan') {
+                        const idNumber = body.userIdNumber || body.userId || body.idNumber;
+                        const scanner = body.rfidScannerId || body.rfidScannerId || 'SCANNER-1';
+                        const user = findUserByIdNumber(idNumber);
+                        if (!user) return Promise.resolve({ userFound: false });
+                        // cooldown protection
+                        const now = Date.now();
+                        const key = (user.idNumber || '').toLowerCase();
+                        const last = _lastTaps[key] || 0;
+                        if (now - last < COOLDOWN_MS) {
+                            return Promise.resolve({ userFound: true, user: clone(user), action: 'ignored', log: null, message: 'Ignored duplicate tap (cooldown)' });
+                        }
+                        // find an open log (timeIn without timeOut) for same user and scanner
+                        const openIdx = _logs.findIndex(l => (l.userIdNumber || '').toLowerCase() === key && (l.rfidScannerId || '') === (scanner || '') && !l.timeOut);
+                        if (openIdx !== -1) {
+                            _logs[openIdx].timeOut = new Date().toISOString();
+                            _lastTaps[key] = now;
+                            return Promise.resolve({ userFound: true, user: clone(user), action: 'timeOut', log: clone(_logs[openIdx]), message: 'Time out recorded (local stub)' });
+                        }
+                        // otherwise create a timeIn log entry
+                        const entry = { timeIn: new Date().toISOString(), timeOut: null, userName: user.name, userIdNumber: user.idNumber, rfidScannerId: scanner };
+                        _logs.unshift(entry);
+                        _lastTaps[key] = now;
+                        return Promise.resolve({ userFound: true, user: clone(user), action: 'timeIn', log: clone(entry), message: 'Time in recorded (local stub)' });
+                    }
+                    return Promise.resolve({});
+                },
+
+                patch: (path, body) => {
+                    console.debug('API PATCH', path, body);
+                    if (path && path.indexOf('/api/users/') === 0) {
+                        const id = path.split('/').pop();
+                        const idx = _users.findIndex(u => u._id == id);
+                        if (idx === -1) return Promise.reject(new Error('User not found'));
+                        _users[idx] = Object.assign({}, _users[idx], body);
+                        return Promise.resolve({ user: clone(_users[idx]) });
+                    }
+                    return Promise.resolve({});
+                },
+
+                delete: (path) => {
+                    console.debug('API DELETE', path);
+                    if (path && path.indexOf('/api/users/') === 0) {
+                        const id = path.split('/').pop();
+                        const idx = _users.findIndex(u => u._id == id);
+                        if (idx === -1) return Promise.reject(new Error('User not found'));
+                        _users.splice(idx, 1);
+                        return Promise.resolve({});
+                    }
+                    return Promise.resolve({});
+                },
+
+                // Auth helpers
+                login: (idNumber, password) => { console.debug('API login', idNumber); return Promise.resolve({}); },
+                logout: () => { console.debug('API logout'); },
+
+                register: (name, idNumber, role) => {
+                    console.debug('API register', name, idNumber, role);
+                    const id = 'u' + (Date.now());
+                    const user = { _id: id, name: name, idNumber: idNumber, role: role || 'user', dateCreated: new Date().toISOString() };
+                    _users.unshift(user);
+                    return Promise.resolve({ user: clone(user) });
+                },
+
+                // Scan
+                scan: (userIdNumber, rfidScannerId) => {
+                    console.debug('API scan', userIdNumber, rfidScannerId);
+                    const scanner = rfidScannerId || 'SCANNER-1';
+                    const user = findUserByIdNumber(userIdNumber);
+                    if (!user) return Promise.resolve({ userFound: false });
+                    // cooldown protection
+                    const now = Date.now();
+                    const key = (user.idNumber || '').toLowerCase();
+                    const last = _lastTaps[key] || 0;
+                    if (now - last < COOLDOWN_MS) {
+                        return Promise.resolve({ userFound: true, user: clone(user), action: 'ignored', log: null, message: 'Ignored duplicate tap (cooldown)' });
+                    }
+                    // look for an open log (timeIn without timeOut) for same user and scanner
+                    const openIdx = _logs.findIndex(l => (l.userIdNumber || '').toLowerCase() === key && (l.rfidScannerId || '') === (scanner || '') && !l.timeOut);
+                    if (openIdx !== -1) {
+                        _logs[openIdx].timeOut = new Date().toISOString();
+                        _lastTaps[key] = now;
+                        return Promise.resolve({ userFound: true, user: clone(user), action: 'timeOut', log: clone(_logs[openIdx]), message: 'Time out recorded (local stub)' });
+                    }
+                    // otherwise create a timeIn entry
+                    const entry = { timeIn: new Date().toISOString(), timeOut: null, userName: user.name, userIdNumber: user.idNumber, rfidScannerId: scanner };
+                    _logs.unshift(entry);
+                    _lastTaps[key] = now;
+                    return Promise.resolve({ userFound: true, user: clone(user), action: 'timeIn', log: clone(entry), message: 'Time in recorded (local stub)' });
+                },
+
+                getLogs: () => { console.debug('API getLogs'); return Promise.resolve(clone(_logs)); },
+                getUsers: () => { console.debug('API getUsers'); return Promise.resolve(clone(_users)); },
+            };
+        })();
+    </script>
+    <script>
+        const scanInput = document.getElementById('scan-id-number');
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const name = link.dataset.panel;
+                console.debug('nav click', name);
+                const panelId = 'panel-' + name;
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+                link.classList.add('active');
+                const panel = document.getElementById(panelId);
+                if (panel) panel.classList.add('active');
+                if (panelId === 'panel-scan' && scanInput) scanInput.focus();
+                if (panelId === 'panel-logs') loadLogs();
+                if (panelId === 'panel-users') loadUsers();
+            });
+        });
+
+        // ——— Scan: RFID reader sends keystrokes like a keyboard; we submit on Enter ———
+        const api = window.NDGM_API;
+        if (!api) console.warn('API unavailable');
+        const SCANNER_ID_KEY = 'ndgm_scanner_id';
+        function getScannerId() {
+            return localStorage.getItem(SCANNER_ID_KEY) || 'SCANNER-1';
+        }
+
+        const scanMsgEl = document.getElementById('scan-msg');
+        const scanResultEl = document.getElementById('scan-result');
+
+        function formatScanTime(d) {
+            if (!d) return '—';
+            var x = new Date(d);
+            return x.toLocaleString();
+        }
+
+        var lastScannedIdForRegister = '';
+
+        async function submitScan() {
+            var idNumber = scanInput.value.trim();
+            if (!idNumber) return;
+            var scannerId = getScannerId();
+            scanMsgEl.textContent = 'Checking…';
+            scanMsgEl.className = 'msg';
+            scanMsgEl.style.display = 'block';
+            scanResultEl.style.display = 'none';
+            scanInput.value = '';
+            try {
+                var res = await api.scan(idNumber, scannerId);
+                scanMsgEl.style.display = 'none';
+                scanResultEl.style.display = 'block';
+                if (res.userFound) {
+                    if (res.action === 'ignored') {
+                        scanResultEl.className = 'scan-result';
+                        scanResultEl.innerHTML = '<h3>' + (res.message || 'Ignored') + '</h3>' +
+                            '<div class="line"><strong>Name:</strong> ' + (res.user && res.user.name ? res.user.name : '—') + '</div>' +
+                            '<div class="line"><strong>ID Number:</strong> ' + (res.user && res.user.idNumber ? res.user.idNumber : idNumber) + '</div>';
+                    } else {
+                        scanResultEl.className = 'scan-result found';
+                        var timeLabel = res.action === 'timeIn' ? 'Time in' : 'Time out';
+                        var timeVal = res.log && (res.action === 'timeIn' ? res.log.timeIn : res.log.timeOut);
+                        scanResultEl.innerHTML = '<h3>' + (res.message || 'Recorded') + '</h3>' +
+                            '<div class="line"><strong>Name:</strong> ' + (res.user && res.user.name ? res.user.name : '—') + '</div>' +
+                            '<div class="line"><strong>ID Number:</strong> ' + (res.user && res.user.idNumber ? res.user.idNumber : idNumber) + '</div>' +
+                            '<div class="line"><strong>' + timeLabel + ':</strong> ' + formatScanTime(timeVal) + '</div>';
+                    }
+                } else {
+                    lastScannedIdForRegister = idNumber;
+                    scanResultEl.className = 'scan-result not-found';
+                    scanResultEl.innerHTML = '<h3>No user found</h3><p class="line">ID: ' + idNumber + '</p>' +
+                        '<button type="button" class="btn btn-primary register-btn" id="btn-register-user">Register user</button>';
+                    document.getElementById('btn-register-user').onclick = openRegisterModal;
+                }
+            } catch (err) {
+                scanMsgEl.style.display = 'block';
+                scanMsgEl.textContent = err.data && err.data.error ? err.data.error : (err.message || 'Scan failed.');
+                scanMsgEl.className = 'msg error';
+                scanInput.value = idNumber;
+            }
+        }
+
+        // Submit on Enter: form submit (works when focus is in input) + keydown fallback
+        document.getElementById('scan-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            console.debug('form submit', scanInput.value);
+            submitScan();
+        });
+        scanInput.addEventListener('keydown', function (e) {
+            console.debug('scan input keydown', e.key, e.keyCode);
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                submitScan();
+            }
+        });
+
+        // ——— Register user modal ———
+        var registerOverlay = document.getElementById('register-overlay');
+        var regName = document.getElementById('reg-name');
+        var regIdNumber = document.getElementById('reg-idNumber');
+        var regRole = document.getElementById('reg-role');
+        var regMsg = document.getElementById('reg-msg');
+
+        function openRegisterModal() {
+            regIdNumber.value = lastScannedIdForRegister;
+            regName.value = '';
+            regRole.value = 'user';
+            regMsg.style.display = 'none';
+            registerOverlay.classList.add('open');
+            regName.focus();
+        }
+
+        function closeRegisterModal() {
+            registerOverlay.classList.remove('open');
+        }
+
+        document.getElementById('btn-register-cancel').addEventListener('click', closeRegisterModal);
+        registerOverlay.addEventListener('click', function (e) {
+            if (e.target === registerOverlay) closeRegisterModal();
+        });
+
+        document.getElementById('btn-register-submit').addEventListener('click', async function () {
+            var name = regName.value.trim();
+            var idNum = regIdNumber.value.trim();
+            var role = regRole.value;
+            if (!name || !idNum) {
+                regMsg.textContent = 'Name and ID Number are required.';
+                regMsg.className = 'msg error';
+                regMsg.style.display = 'block';
+                return;
+            }
+            regMsg.style.display = 'none';
+            try {
+                await api.register(name, idNum, role);
+                regMsg.textContent = 'User registered. You can scan again.';
+                regMsg.className = 'msg success';
+                regMsg.style.display = 'block';
+                setTimeout(function () {
+                    closeRegisterModal();
+                    scanResultEl.style.display = 'none';
+                    scanInput.focus();
+                }, 1200);
+            } catch (err) {
+                regMsg.textContent = (err.data && err.data.error) || err.message || 'Registration failed.';
+                regMsg.className = 'msg error';
+                regMsg.style.display = 'block';
+            }
+        });
+
+        // ——— Logs ———
+        function formatDateTime(d) {
+            if (!d) return '—';
+            const x = new Date(d);
+            return x.toLocaleString();
+        }
+        // Logs: client-side searchable, sortable table
+        var logsCache = [];
+        var logsSort = { by: 'time', dir: -1 }; // dir: 1 asc, -1 desc
+
+        function makeEntriesFromLogs(logs) {
+            // Convert each log to one or two entries (timeIn -> In, timeOut -> Out)
+            const entries = [];
+            (logs || []).forEach(l => {
+                if (l.timeIn) entries.push({ time: l.timeIn, type: 'In', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—' });
+                if (l.timeOut) entries.push({ time: l.timeOut, type: 'Out', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—' });
+            });
+            return entries;
+        }
+
+        function renderLogsTable(entries) {
+            const listEl = document.getElementById('logs-list');
+            if (!entries || entries.length === 0) {
+                listEl.innerHTML = '<p class="panel-status">No logs found.</p>';
+                return;
+            }
+
+            // build table with sortable headers
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const cols = [
+                { key: 'time', label: 'Time' },
+                { key: 'type', label: 'In/Out' },
+                { key: 'name', label: 'Name' },
+                { key: 'idNumber', label: 'ID Number' },
+                { key: 'scanner', label: 'SC ID' },
+            ];
+            cols.forEach(c => {
+                const th = document.createElement('th');
+                th.textContent = c.label;
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', function () {
+                    if (logsSort.by === c.key) logsSort.dir = -logsSort.dir; else { logsSort.by = c.key; logsSort.dir = -1; }
+                    applyLogsUi();
+                });
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            entries.forEach(en => {
+                const tr = document.createElement('tr');
+                const tTime = document.createElement('td'); tTime.textContent = formatDateTime(en.time); tr.appendChild(tTime);
+                const tType = document.createElement('td'); tType.textContent = en.type; tr.appendChild(tType);
+                const tName = document.createElement('td'); tName.textContent = en.name; tr.appendChild(tName);
+                const tId = document.createElement('td'); tId.textContent = en.idNumber; tr.appendChild(tId);
+                const tSc = document.createElement('td'); tSc.textContent = en.scanner; tr.appendChild(tSc);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            listEl.innerHTML = '';
+            listEl.appendChild(table);
+        }
+
+        function applyLogsUi() {
+            const statusEl = document.getElementById('logs-status');
+            const q = (document.getElementById('logs-search').value || '').trim().toLowerCase();
+            const typeFilter = document.getElementById('logs-type-filter').value;
+            let entries = makeEntriesFromLogs(logsCache);
+            if (typeFilter === 'in') entries = entries.filter(e => e.type === 'In');
+            if (typeFilter === 'out') entries = entries.filter(e => e.type === 'Out');
+            if (q) entries = entries.filter(e => (e.name || '').toLowerCase().includes(q) || (e.idNumber || '').toLowerCase().includes(q) || (e.scanner || '').toLowerCase().includes(q));
+            // sort
+            entries.sort((a, b) => {
+                const k = logsSort.by;
+                let va = a[k] || '';
+                let vb = b[k] || '';
+                if (k === 'time') { va = new Date(va).getTime() || 0; vb = new Date(vb).getTime() || 0; }
+                if (va < vb) return -1 * logsSort.dir;
+                if (va > vb) return 1 * logsSort.dir;
+                return 0;
+            });
+            renderLogsTable(entries);
+            statusEl.textContent = entries.length + ' row(s)';
+        }
+
+        async function loadLogs() {
+            const listEl = document.getElementById('logs-list');
+            const statusEl = document.getElementById('logs-status');
+            statusEl.textContent = 'Loading...';
+            try {
+                const logs = await api.getLogs();
+                logsCache = logs || [];
+                applyLogsUi();
+            } catch (err) {
+                statusEl.textContent = '';
+                listEl.innerHTML = '<p class="msg error">' + (err.data?.error || err.message || 'Failed to load logs.') + '</p>';
+            }
+        }
+        document.getElementById('btn-refresh-logs').addEventListener('click', loadLogs);
+        // wire search/filter inputs
+        document.getElementById('logs-search').addEventListener('input', function () { applyLogsUi(); });
+        document.getElementById('logs-type-filter').addEventListener('change', function () { applyLogsUi(); });
+
+        // ——— Users ———
+        var usersCache = [];
+        var usersSort = { by: 'name', dir: 1 };
+        var editingUserId = null;
+
+        function renderUsersTable(list) {
+            const listEl = document.getElementById('users-list');
+            if (!list || list.length === 0) {
+                listEl.innerHTML = '<p class="panel-status">No users found.</p>';
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const cols = [
+                { key: 'name', label: 'Name' },
+                { key: 'idNumber', label: 'ID Number' },
+                { key: 'role', label: 'Role' },
+                { key: 'actions', label: 'Edit' },
+            ];
+            cols.forEach(c => {
+                const th = document.createElement('th');
+                th.textContent = c.label;
+                if (c.key !== 'actions') {
+                    th.style.cursor = 'pointer';
+                    th.addEventListener('click', function () {
+                        if (usersSort.by === c.key) usersSort.dir = -usersSort.dir; else { usersSort.by = c.key; usersSort.dir = 1; }
+                        applyUsersUi();
+                    });
+                }
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            list.forEach(u => {
+                const tr = document.createElement('tr');
+                const tName = document.createElement('td'); tName.textContent = u.name || '—'; tr.appendChild(tName);
+                const tId = document.createElement('td'); tId.textContent = u.idNumber || '—'; tr.appendChild(tId);
+                const tRole = document.createElement('td'); tRole.textContent = u.role || '—'; tr.appendChild(tRole);
+                const tActions = document.createElement('td');
+                const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'Edit';
+                btn.addEventListener('click', function () { openUserModal(u); });
+                tActions.appendChild(btn);
+                tr.appendChild(tActions);
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            listEl.innerHTML = '';
+            listEl.appendChild(table);
+        }
+
+        function applyUsersUi() {
+            const q = (document.getElementById('users-search').value || '').trim().toLowerCase();
+            const roleFilter = document.getElementById('users-role-filter').value;
+            let list = (usersCache || []).slice();
+            if (roleFilter && roleFilter !== 'all') list = list.filter(u => (u.role || '').toLowerCase() === roleFilter.toLowerCase());
+            if (q) list = list.filter(u => (u.name || '').toLowerCase().includes(q) || (u.idNumber || '').toLowerCase().includes(q));
+            list.sort((a, b) => {
+                const k = usersSort.by;
+                const va = (a[k] || '').toString().toLowerCase();
+                const vb = (b[k] || '').toString().toLowerCase();
+                if (va < vb) return -1 * usersSort.dir;
+                if (va > vb) return 1 * usersSort.dir;
+                return 0;
+            });
+            renderUsersTable(list);
+            document.getElementById('users-status').textContent = list.length + ' user(s)';
+        }
+
+        async function loadUsers() {
+            const listEl = document.getElementById('users-list');
+            const statusEl = document.getElementById('users-status');
+            if (!api.getToken()) {
+                listEl.innerHTML = '<p class="panel-status">Login required to view users.</p>';
+                return;
+            }
+            statusEl.textContent = 'Loading...';
+            try {
+                const users = await api.getUsers();
+                usersCache = users || [];
+                applyUsersUi();
+            } catch (err) {
+                statusEl.textContent = '';
+                listEl.innerHTML = '<p class="msg error">' + (err.data?.error || err.message || 'Failed to load users.') + '</p>';
+            }
+        }
+
+        document.getElementById('btn-refresh-users').addEventListener('click', loadUsers);
+        document.getElementById('users-search').addEventListener('input', applyUsersUi);
+        document.getElementById('users-role-filter').addEventListener('change', applyUsersUi);
+        document.getElementById('btn-create-user').addEventListener('click', function () { openUserModal(null); });
+
+        // User modal handlers
+        var userModalOverlay = document.getElementById('user-modal-overlay');
+        var userNameEl = document.getElementById('user-name');
+        var userIdEl = document.getElementById('user-idNumber');
+        var userRoleEl = document.getElementById('user-role');
+        var userMsgEl = document.getElementById('user-msg');
+
+        function openUserModal(user) {
+            editingUserId = user && user._id ? user._id : null;
+            document.getElementById('user-modal-title').textContent = editingUserId ? 'Edit user' : 'Create user';
+            userNameEl.value = user && user.name ? user.name : '';
+            userIdEl.value = user && user.idNumber ? user.idNumber : '';
+            userRoleEl.value = user && user.role ? user.role : 'user';
+            userMsgEl.style.display = 'none';
+            document.getElementById('btn-user-delete').style.display = editingUserId ? 'inline-block' : 'none';
+            userModalOverlay.classList.add('open');
+            userNameEl.focus();
+        }
+
+        function closeUserModal() {
+            userModalOverlay.classList.remove('open');
+            editingUserId = null;
+        }
+
+        document.getElementById('btn-user-modal-close').addEventListener('click', closeUserModal);
+        document.getElementById('btn-user-cancel').addEventListener('click', closeUserModal);
+
+        document.getElementById('btn-user-save').addEventListener('click', async function () {
+            var name = userNameEl.value.trim();
+            var idNumber = userIdEl.value.trim();
+            var role = userRoleEl.value;
+            if (!name || !idNumber) {
+                userMsgEl.textContent = 'Name and ID Number are required.';
+                userMsgEl.className = 'msg error';
+                userMsgEl.style.display = 'block';
+                return;
+            }
+            userMsgEl.style.display = 'none';
+            try {
+                if (editingUserId) {
+                    await api.patch('/api/users/' + editingUserId, { name: name, idNumber: idNumber, role: role });
+                    // update cache locally
+                    usersCache = usersCache.map(u => u._id === editingUserId ? Object.assign({}, u, { name, idNumber, role }) : u);
+                } else {
+                    const res = await api.register(name, idNumber, role);
+                    // try to use returned user, otherwise add a local entry
+                    var newUser = res && res.user ? res.user : { _id: 'local-' + Date.now(), name: name, idNumber: idNumber, role: role, dateCreated: new Date().toISOString() };
+                    usersCache.unshift(newUser);
+                }
+                applyUsersUi();
+                closeUserModal();
+            } catch (err) {
+                userMsgEl.textContent = (err.data && err.data.error) || err.message || 'Save failed.';
+                userMsgEl.className = 'msg error';
+                userMsgEl.style.display = 'block';
+            }
+        });
+
+        document.getElementById('btn-user-delete').addEventListener('click', async function () {
+            if (!editingUserId) return;
+            if (!confirm('Delete this user?')) return;
+            try {
+                await api.delete('/api/users/' + editingUserId);
+                usersCache = usersCache.filter(u => u._id !== editingUserId);
+                applyUsersUi();
+                closeUserModal();
+            } catch (err) {
+                userMsgEl.textContent = (err.data && err.data.error) || err.message || 'Delete failed.';
+                userMsgEl.className = 'msg error';
+                userMsgEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

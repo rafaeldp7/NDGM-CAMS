@@ -1,0 +1,16 @@
+{
+  "name": "ndgm-rfid",
+  "version": "1.0.0",
+  "description": "rfid system",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rafael Dela Paz",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^40.0.0",
+    "electron-builder": "^23.0.6"
+  }
+}
