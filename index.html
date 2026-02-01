@@ -201,42 +201,58 @@
             </div>
             <div id="panel-about" class="content-panel" >
                 <h2>About</h2>
-                <p>The NDGM RFID System is a lightweight attendance and access logging tool built for scanning RFID or ID numbers, recording time‑in/time‑out events, and managing users and logs.</p>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
+                    <div style="flex:1 1 320px;background:#fbfbff;border:1px solid #eef2ff;padding:1rem;border-radius:8px;">
+                        <h3 style="margin-top:0;margin-bottom:0.5rem;">What is NDGM RFID?</h3>
+                        <p style="color:#333;margin:0;font-size:0.95rem;line-height:1.35;">A lightweight attendance and access logging tool that accepts RFID or typed ID numbers, records time‑in/time‑out events, and provides simple administration for users and logs.</p>
+                    </div>
 
-                <h3>Components</h3>
-                <ul>
-                    <li>Frontend: Electron + HTML/JS UI used for scanning and administration.</li>
-                    <li>API client: bridges the UI to a backend server (configurable base URL).</li>
-                    <li>Server: records logs, stores users, and exposes endpoints (login, register, scan, logs, users).</li>
-                    <li>Database: persistent storage for users and log entries (e.g., MongoDB in the server folder).</li>
-                </ul>
+                    <div style="flex:1 1 260px;background:#f9fff7;border:1px solid #ecfdf5;padding:1rem;border-radius:8px;">
+                        <h3 style="margin-top:0;margin-bottom:0.5rem;">Core components</h3>
+                        <ul style="margin:0;padding-left:1.25rem;color:#333;line-height:1.4">
+                            <li><strong>Frontend</strong>: Electron + single-file HTML/JS UI for scanning and admin.</li>
+                            <li><strong>API</strong>: REST endpoints for users and logs (configurable base URL).</li>
+                            <li><strong>Server</strong>: Express app with optional MongoDB persistence or in-memory fallback.</li>
+                        </ul>
+                    </div>
+                </div>
 
-                <h3>How it works</h3>
-                <p>RFID readers typically act like keyboards and send the ID as keystrokes. The UI listens for Enter to submit the scanned value. On submit the client calls the <code>/api/logs/scan</code> endpoint which:</p>
-                <ol>
-                    <li>Checks whether the ID maps to a known user.</li>
-                    <li>If found, records a time‑in or time‑out entry and returns the user and log details.</li>
-                    <li>If not found, the UI offers to register a new user with that ID.</li>
-                </ol>
+                <div style="margin-top:1rem;display:grid;grid-template-columns:1fr;gap:0.75rem;">
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">How scanning works</h3>
+                        <p style="margin:0;color:#444;line-height:1.4;">RFID readers act like keyboards and send the ID as keystrokes. When you press <strong>Enter</strong> the client calls <code>/api/logs/scan</code>. If the ID maps to a user the server will either record a <em>time in</em> (opening a log) or a <em>time out</em> (closing an open log). If the ID is unknown, the UI offers to register the user.</p>
+                    </div>
 
-                <h3>User flows</h3>
-                <ul>
-                    <li>Scan or type an ID, press Enter to record a scan.</li>
-                    <li>Use the <strong>Users</strong> panel to search, create, edit, or delete users.</li>
-                    <li>Use the <strong>Logs</strong> panel to search, filter (In/Out), sort, and review recorded events.</li>
-                </ul>
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+                        <div style="flex:1;">
+                            <h3 style="margin:0 0 0.5rem 0">Behavior & defaults</h3>
+                            <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.4">
+                                <li><strong>Immediate timeout:</strong> a later scan by the same user on the same scanner closes the open log (timeOut is set to the scan time).</li>
+                                <li><strong>Cooldown:</strong> duplicate taps are ignored for <strong>3 seconds</strong> by default to avoid accidental double-taps. (Env: <code>COOLDOWN_MS</code> in ms)</li>
+                                <li><strong>Daily close:</strong> any open logs are auto-closed at <strong>23:59:59.999</strong> each day.</li>
+                            </ul>
+                        </div>
+                        <div style="flex:0 0 180px;text-align:right;color:#666;font-size:0.9rem;">
+                            <div style="font-weight:600;color:#222;">Quick tips</div>
+                            <div>Use the <strong>Users</strong> tab to manage people.</div>
+                            <div>Use <strong>Refresh</strong> to reload remote data.</div>
+                        </div>
+                    </div>
 
-                <h3>Security & configuration</h3>
-                <p>The client can be configured with an API base URL and uses a bearer token for authenticated endpoints (logs, users). In this development build a local debug API stub is used; point the UI to your running server to enable persistent storage.</p>
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">Configuration & developer notes</h3>
+                        <p style="margin:0;color:#444;line-height:1.4;">The client uses a configurable API base (localStorage key <code>ndgm_api_base</code>). By default this build points to the deployed server, but you can set it to <code>http://localhost:3000</code> for local testing. A local debug API stub is used when no remote base is configured so the UI works offline.</p>
+                    </div>
 
-                <h3>Troubleshooting</h3>
-                <ul>
-                    <li>If sidebar clicks or inputs do not work, open DevTools (Ctrl+Shift+I) and check the Console for errors.</li>
-                    <li>If scans aren't being recorded, ensure the server API is reachable and that the configured base URL and token are correct.</li>
-                    <li>Use the <strong>Refresh</strong> buttons in Logs and Users to reload data from the server.</li>
-                </ul>
-
-                <p style="margin-top:0.5rem;color:#555;font-size:0.9rem">Developer notes: the UI exposes a debug API stub when the real API isn't loaded to allow local testing. Replace or remove the stub to connect to your actual backend (see <code>js/api.js</code> for the real client).</p>
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">Troubleshooting</h3>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.4">
+                            <li>Open DevTools (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) to view console and network traces.</li>
+                            <li>If scans don't record, verify the API base URL and that the server is reachable.</li>
+                            <li>If registration or list endpoints return errors, check the server logs for JSON error bodies.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -381,23 +397,44 @@
                 return _users.find(u => (u.idNumber || '').toLowerCase() === (idNumber || '').toLowerCase());
             }
 
+            // Prefer the configured server in localStorage; default to the deployed Render server
+            const BASE = (localStorage.getItem('ndgm_api_base') || 'https://ndgm-cams.onrender.com').replace(/\/$/, '');
+
+            async function remoteFetch(path, opts = {}) {
+                const url = (path && path.startsWith('/')) ? (BASE + path) : (BASE + '/' + path);
+                const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+                const token = localStorage.getItem('ndgm_token');
+                if (token) headers.Authorization = 'Bearer ' + token;
+                const res = await fetch(url, Object.assign({ headers, credentials: 'omit' }, opts));
+                const text = await res.text();
+                let data = null;
+                try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+                if (!res.ok) {
+                    const err = new Error(data && data.error ? data.error : res.statusText || 'Request failed');
+                    err.status = res.status; err.data = data; throw err;
+                }
+                return data;
+            }
+
             window.NDGM_API = {
-                getBase: () => '',
-                setBase: () => {},
-                getToken: () => 'local-debug',
-                setToken: () => {},
+                getBase: () => BASE,
+                setBase: (b) => { localStorage.setItem('ndgm_api_base', b); },
+                getToken: () => localStorage.getItem('ndgm_token') || 'local-debug',
+                setToken: (t) => { if (t) localStorage.setItem('ndgm_token', t); else localStorage.removeItem('ndgm_token'); },
                 getStoredUser: () => null,
-                clearAuth: () => {},
+                clearAuth: () => { localStorage.removeItem('ndgm_token'); },
 
                 get: (path) => {
-                    console.debug('API GET', path);
+                    console.debug('API GET', path, 'BASE=', BASE);
+                    if (BASE) return remoteFetch(path, { method: 'GET' });
                     if (path && path.indexOf('/api/users') === 0) return Promise.resolve(clone(_users));
                     if (path && path.indexOf('/api/logs') === 0) return Promise.resolve(clone(_logs));
                     return Promise.resolve(clone({}));
                 },
 
                 post: (path, body) => {
-                    console.debug('API POST', path, body);
+                    console.debug('API POST', path, body, 'BASE=', BASE);
+                    if (BASE) return remoteFetch(path, { method: 'POST', body: JSON.stringify(body) });
                     if (path === '/api/auth/register' || path === '/api/users') {
                         const id = 'u' + (Date.now());
                         const user = { _id: id, name: body.name, idNumber: body.idNumber, role: body.role || 'user', dateCreated: new Date().toISOString() };
@@ -433,7 +470,8 @@
                 },
 
                 patch: (path, body) => {
-                    console.debug('API PATCH', path, body);
+                    console.debug('API PATCH', path, body, 'BASE=', BASE);
+                    if (BASE) return remoteFetch(path, { method: 'PATCH', body: JSON.stringify(body) });
                     if (path && path.indexOf('/api/users/') === 0) {
                         const id = path.split('/').pop();
                         const idx = _users.findIndex(u => u._id == id);
@@ -445,7 +483,8 @@
                 },
 
                 delete: (path) => {
-                    console.debug('API DELETE', path);
+                    console.debug('API DELETE', path, 'BASE=', BASE);
+                    if (BASE) return remoteFetch(path, { method: 'DELETE' });
                     if (path && path.indexOf('/api/users/') === 0) {
                         const id = path.split('/').pop();
                         const idx = _users.findIndex(u => u._id == id);
@@ -457,11 +496,19 @@
                 },
 
                 // Auth helpers
-                login: (idNumber, password) => { console.debug('API login', idNumber); return Promise.resolve({}); },
+                login: (idNumber, password) => { console.debug('API login', idNumber, 'BASE=', BASE); if (BASE) return remoteFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ idNumber, password }) }); return Promise.resolve({}); },
                 logout: () => { console.debug('API logout'); },
 
                 register: (name, idNumber, role) => {
-                    console.debug('API register', name, idNumber, role);
+                    console.debug('API register', name, idNumber, role, 'BASE=', BASE);
+                    // The server exposes user creation at /api/users — call that instead of /api/auth/register
+                    if (BASE) {
+                        return remoteFetch('/api/users', { method: 'POST', body: JSON.stringify({ name, idNumber, role }) })
+                            .then(data => {
+                                // server returns the created user object; normalize to { user: ... }
+                                return { user: data && (data.user || data) };
+                            });
+                    }
                     const id = 'u' + (Date.now());
                     const user = { _id: id, name: name, idNumber: idNumber, role: role || 'user', dateCreated: new Date().toISOString() };
                     _users.unshift(user);
@@ -470,7 +517,8 @@
 
                 // Scan
                 scan: (userIdNumber, rfidScannerId) => {
-                    console.debug('API scan', userIdNumber, rfidScannerId);
+                    console.debug('API scan', userIdNumber, rfidScannerId, 'BASE=', BASE);
+                    if (BASE) return remoteFetch('/api/logs/scan', { method: 'POST', body: JSON.stringify({ userIdNumber, rfidScannerId }) });
                     const scanner = rfidScannerId || 'SCANNER-1';
                     const user = findUserByIdNumber(userIdNumber);
                     if (!user) return Promise.resolve({ userFound: false });
@@ -495,8 +543,8 @@
                     return Promise.resolve({ userFound: true, user: clone(user), action: 'timeIn', log: clone(entry), message: 'Time in recorded (local stub)' });
                 },
 
-                getLogs: () => { console.debug('API getLogs'); return Promise.resolve(clone(_logs)); },
-                getUsers: () => { console.debug('API getUsers'); return Promise.resolve(clone(_users)); },
+                getLogs: () => { console.debug('API getLogs', 'BASE=', BASE); if (BASE) return remoteFetch('/api/logs'); return Promise.resolve(clone(_logs)); },
+                getUsers: () => { console.debug('API getUsers', 'BASE=', BASE); if (BASE) return remoteFetch('/api/users'); return Promise.resolve(clone(_users)); },
             };
         })();
     </script>
