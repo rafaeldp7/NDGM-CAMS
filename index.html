@@ -162,6 +162,15 @@
                             <label for="scan-id-number">RFID / ID Number</label>
                             <input type="text" id="scan-id-number" placeholder="Type or scan ID then press Enter…" autocomplete="off" autofocus>
                         </div>
+                        <div class="field" style="display:flex;gap:0.5rem;align-items:center;">
+                            <div style="flex:1">
+                                <label for="scan-scanner-id">Scanner ID</label>
+                                <input type="text" id="scan-scanner-id" placeholder="Scanner ID (e.g. SCANNER-1)" style="width:100%;padding:0.45rem;border:1px solid #ccc;border-radius:4px;" disabled>
+                            </div>
+                            <div style="flex:0 0 auto;margin-top:22px;">
+                                <button type="button" id="btn-toggle-scanner-lock" class="btn">Unlock</button>
+                            </div>
+                        </div>
                     </form>
                     <div id="scan-msg" class="msg" style="display: none;"></div>
                     <div id="scan-result" class="scan-result" style="display: none;"></div>
@@ -177,10 +186,15 @@
                         <option value="in">Time In</option>
                         <option value="out">Time Out</option>
                     </select>
+                    <label style="display:flex;align-items:center;gap:0.5rem;margin-right:0.5rem;">
+                        <input type="date" id="logs-date-filter" style="padding:0.35rem;border:1px solid #ccc;border-radius:4px;"> 
+                        <button type="button" id="btn-clear-logs-date" class="btn" title="Clear date">✕</button>
+                    </label>
                     <button type="button" class="btn" id="btn-refresh-logs">Refresh</button>
                     <span class="panel-status" id="logs-status" style="margin-left:0.5rem"></span>
                 </div>
                 <div id="logs-list"></div>
+                <div style="margin-top:0.5rem;color:#666;font-size:0.9rem;">Showing logs for: <span id="logs-date-label">All dates</span></div>
             </div>
             <div id="panel-users" class="content-panel">
                 <h2>Users</h2>
@@ -428,7 +442,30 @@
                     console.debug('API GET', path, 'BASE=', BASE);
                     if (BASE) return remoteFetch(path, { method: 'GET' });
                     if (path && path.indexOf('/api/users') === 0) return Promise.resolve(clone(_users));
-                    if (path && path.indexOf('/api/logs') === 0) return Promise.resolve(clone(_logs));
+                    if (path && path.indexOf('/api/logs') === 0) {
+                        try {
+                            // Support optional query params (from/to, rfidScannerId, userIdNumber)
+                            const u = new URL('http://local' + path);
+                            const from = u.searchParams.get('from');
+                            const to = u.searchParams.get('to');
+                            const scanner = u.searchParams.get('rfidScannerId');
+                            const userId = u.searchParams.get('userIdNumber');
+                            let out = clone(_logs);
+                            if (from || to) {
+                                const fromT = from ? new Date(from).getTime() : -Infinity;
+                                const toT = to ? new Date(to).getTime() : Infinity;
+                                out = out.filter(l => {
+                                    const t = new Date(l.timeIn).getTime();
+                                    return t >= fromT && t <= toT;
+                                });
+                            }
+                            if (scanner) out = out.filter(l => (l.rfidScannerId || '').toLowerCase() === (scanner || '').toLowerCase());
+                            if (userId) out = out.filter(l => (l.userIdNumber || '').toLowerCase() === (userId || '').toLowerCase());
+                            return Promise.resolve(out);
+                        } catch (e) {
+                            return Promise.resolve(clone(_logs));
+                        }
+                    }
                     return Promise.resolve(clone({}));
                 },
 
@@ -576,6 +613,44 @@
             return localStorage.getItem(SCANNER_ID_KEY) || 'SCANNER-1';
         }
 
+        // Scanner ID UI: allow unlocking to edit and persist to localStorage when locked
+        (function setupScannerUi() {
+            var scannerEl = document.getElementById('scan-scanner-id');
+            var toggleBtn = document.getElementById('btn-toggle-scanner-lock');
+            if (!scannerEl || !toggleBtn) return;
+
+            function setLocked(locked) {
+                scannerEl.disabled = !!locked;
+                toggleBtn.textContent = locked ? 'Unlock' : 'Lock';
+                if (locked) {
+                    // save value when locking
+                    var v = (scannerEl.value || '').trim();
+                    if (v) localStorage.setItem(SCANNER_ID_KEY, v);
+                } else {
+                    // focus when unlocked
+                    scannerEl.focus();
+                }
+            }
+
+            // initialize value from storage
+            scannerEl.value = localStorage.getItem(SCANNER_ID_KEY) || 'SCANNER-1';
+            setLocked(true);
+
+            toggleBtn.addEventListener('click', function () {
+                var locked = scannerEl.disabled;
+                setLocked(!locked);
+            });
+
+            // Allow pressing Enter to lock/save when editing
+            scannerEl.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault();
+                    // lock and save
+                    setLocked(true);
+                }
+            });
+        })();
+
         const scanMsgEl = document.getElementById('scan-msg');
         const scanResultEl = document.getElementById('scan-result');
 
@@ -590,7 +665,8 @@
         async function submitScan() {
             var idNumber = scanInput.value.trim();
             if (!idNumber) return;
-            var scannerId = getScannerId();
+            var scannerField = document.getElementById('scan-scanner-id');
+            var scannerId = (scannerField && (scannerField.value || '').trim()) || getScannerId();
             scanMsgEl.textContent = 'Checking…';
             scanMsgEl.className = 'msg';
             scanMsgEl.style.display = 'block';
@@ -789,9 +865,27 @@
         async function loadLogs() {
             const listEl = document.getElementById('logs-list');
             const statusEl = document.getElementById('logs-status');
+            const dateLabel = document.getElementById('logs-date-label');
             statusEl.textContent = 'Loading...';
+
+            // build query if a date is selected
+            const dateInput = document.getElementById('logs-date-filter');
+            let path = '/api/logs';
+            if (dateInput && dateInput.value) {
+                // interpret date input as whole-day filter
+                const d = new Date(dateInput.value + 'T00:00:00');
+                const from = new Date(d);
+                const to = new Date(d);
+                to.setHours(23, 59, 59, 999);
+                const qs = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+                path += '?' + qs.toString();
+                dateLabel.textContent = new Date(dateInput.value).toLocaleDateString();
+            } else {
+                dateLabel.textContent = 'All dates';
+            }
+
             try {
-                const logs = await api.getLogs();
+                const logs = await api.get(path);
                 logsCache = logs || [];
                 applyLogsUi();
             } catch (err) {
@@ -803,6 +897,9 @@
         // wire search/filter inputs
         document.getElementById('logs-search').addEventListener('input', function () { applyLogsUi(); });
         document.getElementById('logs-type-filter').addEventListener('change', function () { applyLogsUi(); });
+        // date filter
+        document.getElementById('logs-date-filter').addEventListener('change', function () { loadLogs(); });
+        document.getElementById('btn-clear-logs-date').addEventListener('click', function () { document.getElementById('logs-date-filter').value = ''; loadLogs(); });
 
         // ——— Users ———
         var usersCache = [];
