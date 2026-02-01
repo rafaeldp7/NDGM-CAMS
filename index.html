@@ -372,63 +372,150 @@
                 <div id="users-list"></div>
             </div>
             <div id="panel-about" class="content-panel" >
-                <h2>About</h2>
+                <h2>About NDGM RFID System</h2>
                 <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.5rem;">
                     <div style="flex:1 1 320px;background:#fbfbff;border:1px solid #eef2ff;padding:1rem;border-radius:8px;">
                         <h3 style="margin-top:0;margin-bottom:0.5rem;">What is NDGM RFID?</h3>
-                        <p style="color:#333;margin:0;font-size:0.95rem;line-height:1.35;">A lightweight attendance and access logging tool that accepts RFID or typed ID numbers, records time‑in/time‑out events, and provides simple administration for users and logs.</p>
+                        <p style="color:#333;margin:0;font-size:0.95rem;line-height:1.5;">A modern, offline-capable attendance and access logging system that accepts RFID or manual ID entry. Features real-time scanning with modal overlays, automatic offline sync, intelligent caching, and comprehensive user/log management across Student, Faculty, and Support Personnel roles.</p>
                     </div>
 
                     <div style="flex:1 1 260px;background:#f9fff7;border:1px solid #ecfdf5;padding:1rem;border-radius:8px;">
-                        <h3 style="margin-top:0;margin-bottom:0.5rem;">Core components</h3>
-                        <ul style="margin:0;padding-left:1.25rem;color:#333;line-height:1.4">
-                            <li><strong>Frontend</strong>: Electron + single-file HTML/JS UI for scanning and admin.</li>
-                            <li><strong>API</strong>: REST endpoints for users and logs (configurable base URL).</li>
-                            <li><strong>Server</strong>: Express app with optional MongoDB persistence or in-memory fallback.</li>
+                        <h3 style="margin-top:0;margin-bottom:0.5rem;">Architecture</h3>
+                        <ul style="margin:0;padding-left:1.25rem;color:#333;line-height:1.5">
+                            <li><strong>Frontend</strong>: Electron + responsive single-file HTML/JS UI optimized for kiosk displays</li>
+                            <li><strong>Backend</strong>: Express.js REST API with MongoDB or in-memory storage</li>
+                            <li><strong>Offline Support</strong>: localStorage cache + sync queue with auto-retry</li>
+                            <li><strong>Deployment</strong>: Frontend (Vercel), Backend (Render)</li>
                         </ul>
                     </div>
                 </div>
 
                 <div style="margin-top:1rem;display:grid;grid-template-columns:1fr;gap:0.75rem;">
                     <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
-                        <h3 style="margin:0 0 0.5rem 0">How scanning works</h3>
-                        <p style="margin:0;color:#444;line-height:1.4;">RFID readers act like keyboards and send the ID as keystrokes. When you press <strong>Enter</strong> the client calls <code>/api/logs/scan</code>. If the ID maps to a user the server will either record a <em>time in</em> (opening a log) or a <em>time out</em> (closing an open log). If the ID is unknown, the UI offers to register the user.</p>
+                        <h3 style="margin:0 0 0.5rem 0">Scan Panel - Public Kiosk Mode</h3>
+                        <p style="margin:0 0 0.5rem 0;color:#444;line-height:1.5;">Redesigned as a public-facing standby screen with large, easy-to-read displays. Scan results appear in centered modal overlays with color-coded status indicators:</p>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5">
+                            <li><strong>🟢 Time In</strong>: Green gradient with user details and timestamp</li>
+                            <li><strong>🔴 Time Out</strong>: Red gradient showing exit time</li>
+                            <li><strong>⏸️ Ignored</strong>: Duplicate tap within cooldown period</li>
+                            <li><strong>📤 Queued (Offline)</strong>: Scan saved locally, will sync when online</li>
+                            <li><strong>❌ Not Found</strong>: Quick registration button displayed</li>
+                        </ul>
+                        <p style="margin:0.5rem 0 0 0;color:#666;font-size:0.9rem;">Modals auto-dismiss after 3 seconds, keeping the input focused for continuous scanning.</p>
+                    </div>
+
+                    <div style="background:#fffbeb;padding:1rem;border-radius:8px;border:1px solid #fef3c7;">
+                        <h3 style="margin:0 0 0.5rem 0">Offline Sync System</h3>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                            <div>
+                                <h4 style="margin:0 0 0.25rem 0;font-size:0.95rem;color:#92400e;">Automatic Caching</h4>
+                                <ul style="margin:0;padding-left:1.25rem;color:#444;font-size:0.9rem;line-height:1.5">
+                                    <li>Logs & Users cached (5min expiry)</li>
+                                    <li>Instant fallback when offline</li>
+                                    <li>Visual "Offline" indicators</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 style="margin:0 0 0.25rem 0;font-size:0.95rem;color:#92400e;">Smart Queue</h4>
+                                <ul style="margin:0;padding-left:1.25rem;color:#444;font-size:0.9rem;line-height:1.5">
+                                    <li>Up to 1,000 scans queued</li>
+                                    <li>Auto-sync every 30s + on focus</li>
+                                    <li>Original timestamps preserved</li>
+                                    <li>5 retry attempts per scan</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p style="margin:0.75rem 0 0 0;color:#92400e;font-size:0.9rem;font-weight:500;">Sync status badge (top-right) shows pending scans • Active sync indicator • Retry warnings</p>
+                    </div>
+
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">Logs Panel - Enhanced Tracking</h3>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5">
+                            <li><strong>Status Column</strong>: ✓ Synced (green) or ⏳ Not Synced (pending queue)</li>
+                            <li><strong>Date Filter</strong>: Calendar picker for daily/range queries</li>
+                            <li><strong>Real-time Search</strong>: Filter by name, ID, or scanner</li>
+                            <li><strong>Type Filter</strong>: View In/Out/All entries</li>
+                            <li><strong>Sortable Columns</strong>: Click headers to sort by time, name, ID, etc.</li>
+                            <li><strong>Live Updates</strong>: Auto-refreshes after successful sync</li>
+                        </ul>
+                        <p style="margin:0.5rem 0 0 0;color:#666;font-size:0.9rem;">Queued scans appear with yellow background until synced to server.</p>
+                    </div>
+
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">Users Panel - Role Management</h3>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5">
+                            <li><strong>Three Roles</strong>: Student, Faculty, Support Personnel</li>
+                            <li><strong>CRUD Operations</strong>: Create, edit, delete with modal dialogs</li>
+                            <li><strong>Role Filter</strong>: Quick filtering by role type</li>
+                            <li><strong>Search</strong>: Real-time search by name or ID number</li>
+                            <li><strong>Sortable Table</strong>: Click column headers to sort</li>
+                        </ul>
                     </div>
 
                     <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
                         <div style="flex:1;">
-                            <h3 style="margin:0 0 0.5rem 0">Behavior & defaults</h3>
-                            <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.4">
-                                <li><strong>Immediate timeout:</strong> a later scan by the same user on the same scanner closes the open log (timeOut is set to the scan time).</li>
-                                <li><strong>Cooldown:</strong> duplicate taps are ignored for <strong>3 seconds</strong> by default to avoid accidental double-taps. (Env: <code>COOLDOWN_MS</code> in ms)</li>
-                                <li><strong>Daily close:</strong> any open logs are auto-closed at <strong>23:59:59.999</strong> each day.</li>
+                            <h3 style="margin:0 0 0.5rem 0">System Behavior</h3>
+                            <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5">
+                                <li><strong>Scanner Lock/Unlock</strong>: Configure scanner ID with persistent storage</li>
+                                <li><strong>Cooldown Protection</strong>: 3-second duplicate tap prevention (configurable via <code>COOLDOWN_MS</code>)</li>
+                                <li><strong>Automatic Time-Out</strong>: Second scan closes open log</li>
+                                <li><strong>Daily Reset</strong>: Open logs auto-close at 23:59:59.999</li>
+                                <li><strong>Sidebar Toggle</strong>: Collapsible navigation (⚐ button) with state persistence</li>
                             </ul>
                         </div>
-                        <div style="flex:0 0 180px;text-align:right;color:#666;font-size:0.9rem;">
-                            <div style="font-weight:600;color:#222;">Quick tips</div>
-                            <div>Use the <strong>Users</strong> tab to manage people.</div>
-                            <div>Use <strong>Refresh</strong> to reload remote data.</div>
+                        <div style="flex:0 0 200px;background:#f9fafb;padding:0.75rem;border-radius:6px;border:1px solid #e5e7eb;">
+                            <div style="font-weight:600;color:#222;margin-bottom:0.5rem;">Pro Tips</div>
+                            <div style="color:#666;font-size:0.85rem;line-height:1.4;">
+                                • Click <strong>Refresh</strong> to force data reload<br>
+                                • Use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> for DevTools<br>
+                                • Check sync badge for pending scans<br>
+                                • Date filter supports range queries
+                            </div>
                         </div>
                     </div>
 
                     <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
-                        <h3 style="margin:0 0 0.5rem 0">Configuration & developer notes</h3>
-                        <p style="margin:0;color:#444;line-height:1.4;">The client uses a configurable API base (localStorage key <code>ndgm_api_base</code>). By default this build points to the deployed server, but you can set it to <code>http://localhost:3000</code> for local testing. A local debug API stub is used when no remote base is configured so the UI works offline.</p>
+                        <h3 style="margin:0 0 0.5rem 0">Responsive Design</h3>
+                        <p style="margin:0;color:#444;line-height:1.5;">Fully responsive UI with optimized layouts for:</p>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem;margin-top:0.5rem;">
+                            <div style="background:#f9fafb;padding:0.5rem;border-radius:4px;text-align:center;font-size:0.85rem;">Mobile (480px)</div>
+                            <div style="background:#f9fafb;padding:0.5rem;border-radius:4px;text-align:center;font-size:0.85rem;">Tablet (768px)</div>
+                            <div style="background:#f9fafb;padding:0.5rem;border-radius:4px;text-align:center;font-size:0.85rem;">Desktop (1024px)</div>
+                            <div style="background:#f9fafb;padding:0.5rem;border-radius:4px;text-align:center;font-size:0.85rem;">FHD (1920px)</div>
+                            <div style="background:#f9fafb;padding:0.5rem;border-radius:4px;text-align:center;font-size:0.85rem;">4K (2560px)</div>
+                        </div>
+                        <p style="margin:0.5rem 0 0 0;color:#666;font-size:0.9rem;">Supports aspect ratios: 16:9, 4:3, 5:4, 21:9 • Height breakpoints for compact displays</p>
+                    </div>
+
+                    <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
+                        <h3 style="margin:0 0 0.5rem 0">Configuration</h3>
+                        <p style="margin:0 0 0.5rem 0;color:#444;line-height:1.5;"><strong>localStorage Settings:</strong></p>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5;font-size:0.9rem;">
+                            <li><code>ndgm_api_base</code> — Server URL (default: Render deployment)</li>
+                            <li><code>ndgm_scanner_id</code> — Scanner identifier</li>
+                            <li><code>sidebar-hidden</code> — Navigation state (true/false)</li>
+                            <li><code>ndgm_cache_*</code> — Cached logs/users with timestamps</li>
+                            <li><code>ndgm_scan_queue</code> — Offline scan queue</li>
+                        </ul>
+                        <p style="margin:0.5rem 0 0 0;color:#666;font-size:0.9rem;">Set to <code>http://localhost:3000</code> for local development. Includes fallback debug API stub.</p>
                     </div>
 
                     <div style="background:#fff;padding:1rem;border-radius:8px;border:1px solid #eee;">
                         <h3 style="margin:0 0 0.5rem 0">Troubleshooting</h3>
-                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.4">
-                            <li>Open DevTools (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>) to view console and network traces.</li>
-                            <li>If scans don't record, verify the API base URL and that the server is reachable.</li>
-                            <li>If registration or list endpoints return errors, check the server logs for JSON error bodies.</li>
+                        <ul style="margin:0;padding-left:1.25rem;color:#444;line-height:1.5">
+                            <li><strong>Scans not recording?</strong> Check API base URL and server connectivity. Look for sync badge.</li>
+                            <li><strong>Offline mode?</strong> Scans are queued automatically. Yellow badge shows pending count.</li>
+                            <li><strong>Cache issues?</strong> Data expires after 5 minutes. Use Refresh or clear localStorage.</li>
+                            <li><strong>Console access:</strong> <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> → Console tab for logs</li>
+                            <li><strong>Manual sync:</strong> <code>window.NDGM_SYNC.syncQueue()</code> in console</li>
+                            <li><strong>View queue:</strong> <code>window.NDGM_SYNC.getQueue()</code></li>
                         </ul>
                     </div>
 
                     <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);padding:1.5rem;border-radius:8px;border:1px solid #86efac;margin-top:0.5rem;">
                         <h3 style="margin:0 0 1rem 0;color:#0F5401;">The Creators</h3>
                         <div style="color:#333;line-height:1.8;font-size:1rem;">
-                            <div><strong>Rafael Dela Paz</strong></div>
+                            <div><strong>Rafael Dela Paz</strong> - <a href="mailto:delapazr07@gmail.com" style="color:#0F5401;text-decoration:none;">delapazr07@gmail.com</a></div>
                             <div><strong>Aristotle Peteros</strong></div>
                             <div><strong>Dean Gabriel Nueva</strong></div>
                             <div><strong>Cyryll Jade Racho</strong></div>
