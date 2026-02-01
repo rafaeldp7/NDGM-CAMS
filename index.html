@@ -202,10 +202,9 @@
                     <input type="search" id="users-search" placeholder="Search name or ID" style="flex:1;padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
                     <select id="users-role-filter" style="padding:0.45rem;border:1px solid #ccc;border-radius:4px;margin-right:0.5rem;">
                         <option value="all">All roles</option>
-                        <option value="user">User</option>
-                        <option value="staff">Staff</option>
-                        <option value="guard">Guard</option>
-                        <option value="admin">Admin</option>
+                        <option value="student">Student</option>
+                        <option value="faculty">Faculty</option>
+                        <option value="support">Support Personnel</option>
                     </select>
                     <button type="button" class="btn" id="btn-create-user">Create</button>
                     <button type="button" class="btn" id="btn-refresh-users">Refresh</button>
@@ -286,10 +285,9 @@
             <div class="field">
                 <label for="reg-role">Role</label>
                 <select id="reg-role">
-                    <option value="user">User</option>
-                    <option value="staff">Staff</option>
-                    <option value="guard">Guard</option>
-                    <option value="admin">Admin</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="support">Support Personnel</option>
                 </select>
             </div>
             <div id="reg-msg" class="msg" style="display: none;"></div>
@@ -317,10 +315,9 @@
                     <div class="field">
                         <label for="user-role">Role</label>
                         <select id="user-role">
-                            <option value="user">User</option>
-                            <option value="staff">Staff</option>
-                            <option value="guard">Guard</option>
-                            <option value="admin">Admin</option>
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="support">Support Personnel</option>
                         </select>
                     </div>
                     <div id="user-msg" class="msg" style="display:none;margin-top:0.5rem"></div>
@@ -389,9 +386,9 @@
 
             // Sample users
             const _users = [
-                { _id: 'u1', name: 'Alice Johnson', idNumber: 'A1001', role: 'user', dateCreated: new Date(Date.now() - 86400000 * 10).toISOString() },
-                { _id: 'u2', name: 'Bob Santos', idNumber: 'B2002', role: 'staff', dateCreated: new Date(Date.now() - 86400000 * 5).toISOString() },
-                { _id: 'u3', name: 'Guard Maria', idNumber: 'G3003', role: 'guard', dateCreated: new Date(Date.now() - 86400000 * 2).toISOString() },
+                { _id: 'u1', name: 'Alice Johnson', idNumber: 'A1001', role: 'student', dateCreated: new Date(Date.now() - 86400000 * 10).toISOString() },
+                { _id: 'u2', name: 'Bob Santos', idNumber: 'B2002', role: 'faculty', dateCreated: new Date(Date.now() - 86400000 * 5).toISOString() },
+                { _id: 'u3', name: 'Maria Cruz', idNumber: 'G3003', role: 'support', dateCreated: new Date(Date.now() - 86400000 * 2).toISOString() },
             ];
 
             // Sample logs (some with timeIn/timeOut pairs)
@@ -474,7 +471,7 @@
                     if (BASE) return remoteFetch(path, { method: 'POST', body: JSON.stringify(body) });
                     if (path === '/api/auth/register' || path === '/api/users') {
                         const id = 'u' + (Date.now());
-                        const user = { _id: id, name: body.name, idNumber: body.idNumber, role: body.role || 'user', dateCreated: new Date().toISOString() };
+                        const user = { _id: id, name: body.name, idNumber: body.idNumber, role: body.role || 'student', dateCreated: new Date().toISOString() };
                         _users.unshift(user);
                         return Promise.resolve({ user: clone(user) });
                     }
@@ -547,7 +544,7 @@
                             });
                     }
                     const id = 'u' + (Date.now());
-                    const user = { _id: id, name: name, idNumber: idNumber, role: role || 'user', dateCreated: new Date().toISOString() };
+                    const user = { _id: id, name: name, idNumber: idNumber, role: role || 'student', dateCreated: new Date().toISOString() };
                     _users.unshift(user);
                     return Promise.resolve({ user: clone(user) });
                 },
@@ -1008,7 +1005,7 @@
             document.getElementById('user-modal-title').textContent = editingUserId ? 'Edit user' : 'Create user';
             userNameEl.value = user && user.name ? user.name : '';
             userIdEl.value = user && user.idNumber ? user.idNumber : '';
-            userRoleEl.value = user && user.role ? user.role : 'user';
+            userRoleEl.value = user && user.role ? user.role : 'student';
             userMsgEl.style.display = 'none';
             document.getElementById('btn-user-delete').style.display = editingUserId ? 'inline-block' : 'none';
             userModalOverlay.classList.add('open');
