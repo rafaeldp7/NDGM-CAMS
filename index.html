@@ -32,6 +32,21 @@
             border-bottom: 1px solid #e0e0e0;
             z-index: 10;
         }
+        .sync-status {
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 12px;
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+            display: none;
+        }
+        .sync-status.visible { display: block; }
+        .sync-status.syncing { background: #dbeafe; color: #1e40af; border-color: #60a5fa; }
+        .sync-status.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
         .header img {
             height: 56px;
             width: auto;
@@ -58,9 +73,15 @@
         .sidebar {
             width: 240px;
             flex-shrink: 0;
-            background: #f5f5f5;
-            border-right: 1px solid #e0e0e0;
+            background: #0F5401;
+            border-right: 1px solid #0a3a01;
             overflow-y: auto;
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+        .sidebar.hidden {
+            transform: translateX(-240px);
+            width: 0;
+            border-right: none;
         }
         .sidebar-nav {
             list-style: none;
@@ -72,15 +93,16 @@
         .sidebar-nav a {
             display: block;
             padding: 0.6rem 1rem;
-            color: #333;
+            color: #e8f5e9;
             text-decoration: none;
         }
         .sidebar-nav a:hover {
-            background: #e8e8e8;
+            background: #1a7a02;
         }
         .sidebar-nav a.active {
-            background: #d0d0d0;
+            background: #2a9d03;
             font-weight: 600;
+            color: #fff;
         }
         /* Content – right, fills remaining space */
         .content {
@@ -99,6 +121,8 @@
         .btn:hover { background: #eee; }
         .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
         .btn-primary:hover { background: #1d4ed8; }
+        .btn-toggle-sidebar { padding: 0.4rem 0.6rem; background: #0F5401; color: #fff; border: 1px solid #0a3a01; cursor: pointer; font-size: 1.1rem; border-radius: 4px; }
+        .btn-toggle-sidebar:hover { background: #1a7a02; }
         .msg { margin-top: 0.5rem; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; }
         .msg.success { background: #dcfce7; color: #166534; }
         .msg.error { background: #fee2e2; color: #991b1b; }
@@ -111,26 +135,138 @@
         .data-table th { background: #f5f5f5; font-weight: 600; }
         .panel-toolbar { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
         .panel-status { color: #666; font-size: 0.9rem; }
-        .scan-result { margin-top: 1rem; padding: 1rem; border-radius: 8px; border: 1px solid #e0e0e0; max-width: 400px; }
-        .scan-result.found { background: #f0fdf4; border-color: #86efac; }
-        .scan-result.not-found { background: #fef2f2; border-color: #fecaca; }
-        .scan-result h3 { font-size: 1rem; margin-bottom: 0.5rem; }
-        .scan-result .line { margin: 0.25rem 0; }
-        .scan-result .register-btn { margin-top: 0.75rem; }
+        .scan-result { margin-top: 1rem; padding: 2rem; border-radius: 16px; border: 2px solid #e0e0e0; max-width: 500px; width: 90%; background: #fff; }
+        .scan-result.found { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #22c55e; box-shadow: 0 8px 24px rgba(34,197,94,0.3); }
+        .scan-result.not-found { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-color: #ef4444; box-shadow: 0 8px 24px rgba(239,68,68,0.3); }
+        .scan-result h3 { font-size: 2rem; margin-bottom: 1rem; font-weight: 700; }
+        .scan-result .line { margin: 0.75rem 0; font-size: 1.25rem; }
+        .scan-result .register-btn { margin-top: 1.5rem; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
         .modal-overlay.open { display: flex; }
+        .scan-result-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; pointer-events: none; }
+        .scan-result-overlay.open { display: flex; }
+        .scan-result-overlay .scan-result { pointer-events: auto; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .scan-result-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; pointer-events: none; }
+        .scan-result-overlay.open { display: flex; }
+        .scan-result-overlay .scan-result { pointer-events: auto; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .modal { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 360px; width: 90%; }
         .modal h3 { margin-bottom: 1rem; }
         .modal .field { margin-bottom: 0.75rem; }
         .modal label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
         .modal input, .modal select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
         .modal-actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
+
+        /* Responsive Design - Mobile First */
+        @media (max-width: 768px) {
+            .header { padding: 0.5rem 1rem; flex-wrap: wrap; }
+            .header img { height: 40px; }
+            .date h1 { font-size: 0.85rem; }
+            .sidebar { width: 200px; }
+            .sidebar.hidden { transform: translateX(-200px); }
+            .content { padding: 1rem; }
+            .panel-toolbar { flex-wrap: wrap; }
+            .data-table { font-size: 0.8rem; }
+            .data-table th, .data-table td { padding: 0.35rem; }
+        }
+
+        @media (max-width: 480px) {
+            .header img { height: 32px; }
+            .sidebar { width: 180px; }
+            .sidebar.hidden { transform: translateX(-180px); }
+            .sidebar-nav a { padding: 0.5rem 0.75rem; font-size: 0.9rem; }
+            .content { padding: 0.75rem; }
+            .scan-result h3 { font-size: 1.5rem; }
+            .scan-result .line { font-size: 1rem; }
+        }
+
+        /* Aspect ratio optimizations */
+        /* 4:3 and 5:4 (more square) - reduce sidebar, optimize vertical space */
+        @media (max-aspect-ratio: 4/3) {
+            .sidebar { width: 200px; }
+            .sidebar.hidden { transform: translateX(-200px); }
+            .content { padding: 1rem; }
+            .header { padding: 0.5rem 1rem; }
+        }
+
+        /* Ultra-wide 21:9 and wider - use horizontal space better */
+        @media (min-aspect-ratio: 21/9) {
+            .sidebar { width: 280px; }
+            .sidebar.hidden { transform: translateX(-280px); }
+            .content { padding: 2rem 3rem; }
+        }
+
+        /* High resolution displays - scale up elements */
+        @media (min-width: 1920px) {
+            .header { padding: 1rem 2rem; }
+            .header img { height: 64px; }
+            .date h1 { font-size: 1.1rem; }
+            .sidebar { width: 280px; }
+            .sidebar.hidden { transform: translateX(-280px); }
+            .sidebar-nav a { padding: 0.75rem 1.25rem; font-size: 1rem; }
+            .content { padding: 2rem; font-size: 1.05rem; }
+            .btn { font-size: 1rem; padding: 0.5rem 1rem; }
+            .data-table { font-size: 1rem; }
+            .scan-result h3 { font-size: 2.5rem; }
+            .scan-result .line { font-size: 1.5rem; }
+        }
+
+        @media (min-width: 2560px) {
+            .header { padding: 1.25rem 2.5rem; }
+            .header img { height: 72px; }
+            .sidebar { width: 320px; }
+            .sidebar.hidden { transform: translateX(-320px); }
+            .sidebar-nav a { font-size: 1.1rem; padding: 0.85rem 1.5rem; }
+            .content { padding: 2.5rem; font-size: 1.1rem; }
+            .scan-result h3 { font-size: 3rem; }
+            .scan-result .line { font-size: 1.75rem; }
+        }
+
+        /* Small height screens - compact vertical spacing */
+        @media (max-height: 720px) {
+            .header { padding: 0.5rem 1rem; }
+            .header img { height: 42px; }
+            .content { padding: 1rem; }
+            .scan-result { padding: 1.5rem; }
+            .scan-result h3 { font-size: 1.75rem; }
+        }
+
+        @media (max-height: 600px) {
+            .header { padding: 0.4rem 0.75rem; }
+            .header img { height: 36px; }
+            .date h1 { font-size: 0.85rem; }
+            .content { padding: 0.75rem; }
+            .sidebar-nav a { padding: 0.5rem 0.75rem; }
+            .scan-result { padding: 1.25rem; }
+            .scan-result h3 { font-size: 1.5rem; }
+            .scan-result .line { font-size: 1rem; }
+        }
+
+        /* Ensure tables are scrollable on small screens */
+        @media (max-width: 1024px) {
+            .data-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
+
+        /* Flexible panel toolbar for all sizes */
+        .panel-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+        .panel-toolbar > input[type="search"] { min-width: 150px; flex: 1 1 200px; }
+        .panel-toolbar > select { min-width: 100px; }
+        .panel-toolbar > button { white-space: nowrap; }
+
+        /* Ensure modals scale properly */
+        .modal { max-width: min(90vw, 400px); }
+        .scan-result { max-width: min(90vw, 600px); }
     </style>
+
 </head>
 <body>
     <!-- Header – stays fixed when sidebar navigates -->
     <header class="header">
-        <img src="./assets/logo/notre-dame-logo.png" alt="NDGM RFID">
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <button type="button" id="btn-toggle-sidebar" class="btn-toggle-sidebar" title="Toggle sidebar">☰</button>
+            <img src="./assets/logo/notre-dame-logo.png" alt="NDGM RFID">
+        </div>
         <div class="date">
             <h1 id="header-date">—</h1>
             <h1 id="header-time">—</h1>
@@ -154,26 +290,49 @@
         <!-- Content -->
         <div class="content">
             <div id="panel-scan" class="content-panel active">
-                <h2>Scan</h2>
-                <p style="margin-bottom: 1rem;">Type or scan the RFID code, then press <strong>Enter</strong> to check and record.</p>
-                <div class="scan-form">
-                    <form id="scan-form" action="javascript:void(0);" method="post">
-                        <div class="field">
-                            <label for="scan-id-number">RFID / ID Number</label>
-                            <input type="text" id="scan-id-number" placeholder="Type or scan ID then press Enter…" autocomplete="off" autofocus>
-                        </div>
-                        <div class="field" style="display:flex;gap:0.5rem;align-items:center;">
-                            <div style="flex:1">
-                                <label for="scan-scanner-id">Scanner ID</label>
-                                <input type="text" id="scan-scanner-id" placeholder="Scanner ID (e.g. SCANNER-1)" style="width:100%;padding:0.45rem;border:1px solid #ccc;border-radius:4px;" disabled>
+                <div style="max-width:800px;margin:0 auto;padding:2rem 1rem;text-align:center;">
+                    <!-- Standby header -->
+                    <div style="margin-bottom:2rem;">
+                        <img src="./assets/logo/notre-dame-logo-vertical-removebg-preview.png" alt="CAMS Logo" style="height:256px;width:auto;;">
+                        <h1 style="font-size:2rem;font-weight:700;color:#0F5401;margin-bottom:0.5rem;">CAMS - Campus Attendance Management System</h1>
+                        <p style="font-size:1.25rem;color:#666;margin:0;">Notre Dame of Greater Manila</p>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);border:2px solid #86efac;border-radius:16px;padding:2rem;margin-bottom:2rem;box-shadow:0 4px 12px rgba(15,84,1,0.1);">
+                        <div style="font-size:1.5rem;font-weight:600;color:#0F5401;margin-bottom:1rem;">📱 Tap or Scan Your ID</div>
+                        <p style="font-size:1.1rem;color:#333;margin:0;">Place your RFID card near the scanner or type your ID number, then press <strong>Enter</strong></p>
+                    </div>
+
+                    <!-- Scan input form -->
+                    <div class="scan-form" style="max-width:600px;margin:0 auto;">
+                        <form id="scan-form" action="javascript:void(0);" method="post">
+                            <div class="field" style="margin-bottom:1.5rem;">
+                                <input type="text" id="scan-id-number" placeholder="Ready to scan..." autocomplete="off" autofocus style="width:100%;padding:1.25rem;font-size:1.5rem;border:3px solid #0F5401;border-radius:12px;text-align:center;font-weight:600;box-shadow:0 2px 8px rgba(15,84,1,0.15);">
                             </div>
-                            <div style="flex:0 0 auto;margin-top:22px;">
-                                <button type="button" id="btn-toggle-scanner-lock" class="btn">Unlock</button>
+                        </form>
+
+                        <!-- Scanner ID config (collapsed by default) -->
+                        <details style="margin-top:1rem;">
+                            <summary style="cursor:pointer;color:#666;font-size:0.9rem;padding:0.5rem;">⚙️ Scanner Settings</summary>
+                            <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;max-width:400px;margin-left:auto;margin-right:auto;">
+                                <div style="flex:1">
+                                    <label for="scan-scanner-id" style="display:block;margin-bottom:0.25rem;font-weight:500;text-align:left;font-size:0.9rem;">Scanner ID</label>
+                                    <input type="text" id="scan-scanner-id" placeholder="Scanner ID (e.g. SCANNER-1)" style="width:100%;padding:0.5rem;border:1px solid #ccc;border-radius:4px;" disabled>
+                                </div>
+                                <div style="flex:0 0 auto;margin-top:22px;">
+                                    <button type="button" id="btn-toggle-scanner-lock" class="btn">Unlock</button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                    <div id="scan-msg" class="msg" style="display: none;"></div>
-                    <div id="scan-result" class="scan-result" style="display: none;"></div>
+                        </details>
+
+                        <div id="scan-msg" class="msg" style="display: none;margin-top:1.5rem;"></div>
+                    </div>
+
+                    <!-- Footer info -->
+                    <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid #e5e7eb;color:#999;font-size:0.9rem;">
+                        <p style="margin:0;">For assistance, please contact the administrator</p>
+                    </div>
                 </div>
             </div>
 
@@ -265,6 +424,19 @@
                             <li>If registration or list endpoints return errors, check the server logs for JSON error bodies.</li>
                         </ul>
                     </div>
+
+                    <div style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);padding:1.5rem;border-radius:8px;border:1px solid #86efac;margin-top:0.5rem;">
+                        <h3 style="margin:0 0 1rem 0;color:#0F5401;">The Creators</h3>
+                        <div style="color:#333;line-height:1.8;font-size:1rem;">
+                            <div><strong>Rafael Dela Paz</strong></div>
+                            <div><strong>Aristotle Peteros</strong></div>
+                            <div><strong>Dean Gabriel Nueva</strong></div>
+                            <div><strong>Cyryll Jade Racho</strong></div>
+                        </div>
+                        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #86efac;color:#666;font-size:0.95rem;">
+                            <strong>Date:</strong> January 5, 2026
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -332,6 +504,11 @@
                     </div>
                 </div>
             </div>
+
+    <!-- Scan result modal overlay -->
+    <div id="scan-result-overlay" class="scan-result-overlay">
+        <div id="scan-result-modal" class="scan-result"></div>
+    </div>
 
     <!-- Run date/time first so it works even if api.js fails; always uses local time, optionally syncs online -->
     <script>
@@ -550,9 +727,11 @@
                 },
 
                 // Scan
-                scan: (userIdNumber, rfidScannerId) => {
-                    console.debug('API scan', userIdNumber, rfidScannerId, 'BASE=', BASE);
-                    if (BASE) return remoteFetch('/api/logs/scan', { method: 'POST', body: JSON.stringify({ userIdNumber, rfidScannerId }) });
+                scan: (userIdNumber, rfidScannerId, timestamp) => {
+                    console.debug('API scan', userIdNumber, rfidScannerId, timestamp, 'BASE=', BASE);
+                    const payload = { userIdNumber, rfidScannerId };
+                    if (timestamp) payload.timestamp = timestamp;
+                    if (BASE) return remoteFetch('/api/logs/scan', { method: 'POST', body: JSON.stringify(payload) });
                     const scanner = rfidScannerId || 'SCANNER-1';
                     const user = findUserByIdNumber(userIdNumber);
                     if (!user) return Promise.resolve({ userFound: false });
@@ -582,8 +761,228 @@
             };
         })();
     </script>
+    <!-- Cache & Offline Sync System -->
+    <script>
+        (function initCacheAndSync() {
+            const CACHE_KEYS = {
+                logs: 'ndgm_cache_logs',
+                users: 'ndgm_cache_users',
+                logsTimestamp: 'ndgm_cache_logs_ts',
+                usersTimestamp: 'ndgm_cache_users_ts',
+                scanQueue: 'ndgm_scan_queue'
+            };
+            const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+            const SYNC_INTERVAL_MS = 30 * 1000; // Try sync every 30 seconds
+            const MAX_QUEUE_SIZE = 1000;
+
+            // Cache management
+            window.NDGM_CACHE = {
+                setLogs: function(data) {
+                    try {
+                        localStorage.setItem(CACHE_KEYS.logs, JSON.stringify(data));
+                        localStorage.setItem(CACHE_KEYS.logsTimestamp, Date.now().toString());
+                    } catch (e) { console.warn('Cache write failed:', e); }
+                },
+                getLogs: function() {
+                    try {
+                        const ts = parseInt(localStorage.getItem(CACHE_KEYS.logsTimestamp) || '0');
+                        if (Date.now() - ts > CACHE_EXPIRY_MS) return null;
+                        const cached = localStorage.getItem(CACHE_KEYS.logs);
+                        return cached ? JSON.parse(cached) : null;
+                    } catch (e) { return null; }
+                },
+                setUsers: function(data) {
+                    try {
+                        localStorage.setItem(CACHE_KEYS.users, JSON.stringify(data));
+                        localStorage.setItem(CACHE_KEYS.usersTimestamp, Date.now().toString());
+                    } catch (e) { console.warn('Cache write failed:', e); }
+                },
+                getUsers: function() {
+                    try {
+                        const ts = parseInt(localStorage.getItem(CACHE_KEYS.usersTimestamp) || '0');
+                        if (Date.now() - ts > CACHE_EXPIRY_MS) return null;
+                        const cached = localStorage.getItem(CACHE_KEYS.users);
+                        return cached ? JSON.parse(cached) : null;
+                    } catch (e) { return null; }
+                },
+                clearAll: function() {
+                    Object.values(CACHE_KEYS).forEach(k => localStorage.removeItem(k));
+                }
+            };
+
+            // Offline scan queue management
+            window.NDGM_SYNC = {
+                queueScan: function(userIdNumber, rfidScannerId) {
+                    try {
+                        const queue = this.getQueue();
+                        if (queue.length >= MAX_QUEUE_SIZE) {
+                            console.warn('Scan queue full, dropping oldest entry');
+                            queue.shift();
+                        }
+                        queue.push({
+                            id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            userIdNumber: userIdNumber,
+                            rfidScannerId: rfidScannerId,
+                            timestamp: new Date().toISOString(),
+                            retries: 0
+                        });
+                        localStorage.setItem(CACHE_KEYS.scanQueue, JSON.stringify(queue));
+                        console.log('Queued scan for later sync:', userIdNumber);
+                        this.updateSyncUI();
+                        return true;
+                    } catch (e) {
+                        console.error('Failed to queue scan:', e);
+                        return false;
+                    }
+                },
+                getQueue: function() {
+                    try {
+                        const raw = localStorage.getItem(CACHE_KEYS.scanQueue);
+                        return raw ? JSON.parse(raw) : [];
+                    } catch (e) {
+                        return [];
+                    }
+                },
+                clearQueue: function() {
+                    localStorage.removeItem(CACHE_KEYS.scanQueue);
+                    this.updateSyncUI();
+                },
+                updateSyncUI: function() {
+                    const statusEl = document.getElementById('sync-status');
+                    if (!statusEl) return;
+                    const queue = this.getQueue();
+                    if (queue.length === 0) {
+                        statusEl.classList.remove('visible', 'syncing', 'error');
+                        statusEl.textContent = '';
+                    } else {
+                        statusEl.classList.add('visible');
+                        statusEl.textContent = `📤 ${queue.length} scan${queue.length === 1 ? '' : 's'} pending sync`;
+                    }
+                },
+                setSyncing: function(isSyncing) {
+                    const statusEl = document.getElementById('sync-status');
+                    if (!statusEl) return;
+                    if (isSyncing) {
+                        statusEl.classList.add('syncing');
+                        statusEl.classList.remove('error');
+                        const queue = this.getQueue();
+                        statusEl.textContent = `⏳ Syncing ${queue.length} scan${queue.length === 1 ? '' : 's'}...`;
+                    } else {
+                        statusEl.classList.remove('syncing');
+                        this.updateSyncUI();
+                    }
+                },
+                setError: function(message) {
+                    const statusEl = document.getElementById('sync-status');
+                    if (!statusEl) return;
+                    statusEl.classList.add('visible', 'error');
+                    statusEl.classList.remove('syncing');
+                    const queue = this.getQueue();
+                    statusEl.textContent = `⚠️ ${queue.length} pending (${message})`;
+                },
+                syncQueue: async function() {
+                    const queue = this.getQueue();
+                    if (queue.length === 0) return { success: true, synced: 0 };
+
+                    console.log(`Starting sync of ${queue.length} queued scans...`);
+                    this.setSyncing(true);
+
+                    let synced = 0;
+                    let failed = [];
+                    const api = window.NDGM_API;
+
+                    for (const item of queue) {
+                        try {
+                            // Try to send the scan with original timestamp
+                            await api.scan(item.userIdNumber, item.rfidScannerId, item.timestamp);
+                            synced++;
+                            console.log(`✓ Synced queued scan: ${item.userIdNumber} (original time: ${item.timestamp})`);
+                        } catch (err) {
+                            console.warn(`✗ Failed to sync scan ${item.id}:`, err.message);
+                            item.retries = (item.retries || 0) + 1;
+                            // Keep in queue if retries < 5
+                            if (item.retries < 5) {
+                                failed.push(item);
+                            } else {
+                                console.error(`Dropping scan ${item.id} after ${item.retries} retries`);
+                            }
+                        }
+                    }
+
+                    // Update queue with only failed items
+                    localStorage.setItem(CACHE_KEYS.scanQueue, JSON.stringify(failed));
+                    this.setSyncing(false);
+
+                    // Refresh logs UI if it's currently visible to show synced items
+                    if (synced > 0) {
+                        const logsPanel = document.getElementById('panel-logs');
+                        if (logsPanel && logsPanel.classList.contains('active')) {
+                            // Reload logs to get fresh data including just-synced scans
+                            if (typeof loadLogs === 'function') {
+                                setTimeout(function() { loadLogs(); }, 500);
+                            } else if (typeof applyLogsUi === 'function') {
+                                // Just refresh the UI to remove pending indicators
+                                setTimeout(function() { applyLogsUi(); }, 100);
+                            }
+                        }
+                    }
+
+                    if (failed.length === 0) {
+                        console.log(`✓ All ${synced} scans synced successfully`);
+                        return { success: true, synced, failed: 0 };
+                    } else {
+                        console.warn(`Partial sync: ${synced} synced, ${failed.length} failed`);
+                        this.setError('retry pending');
+                        return { success: false, synced, failed: failed.length };
+                    }
+                }
+            };
+
+            // Auto-sync on window focus and periodic interval
+            window.addEventListener('focus', function() {
+                console.debug('Window focused, checking sync queue...');
+                window.NDGM_SYNC.syncQueue();
+            });
+
+            setInterval(function() {
+                const queue = window.NDGM_SYNC.getQueue();
+                if (queue.length > 0) {
+                    console.debug('Periodic sync check...');
+                    window.NDGM_SYNC.syncQueue();
+                }
+            }, SYNC_INTERVAL_MS);
+
+            // Initial UI update
+            window.NDGM_SYNC.updateSyncUI();
+
+            // Try to sync on page load if there's a queue
+            setTimeout(function() {
+                const queue = window.NDGM_SYNC.getQueue();
+                if (queue.length > 0) {
+                    console.log(`Found ${queue.length} queued scans on startup, attempting sync...`);
+                    window.NDGM_SYNC.syncQueue();
+                }
+            }, 2000);
+        })();
+    </script>
     <script>
         const scanInput = document.getElementById('scan-id-number');
+
+        // Sidebar toggle
+        (function setupSidebarToggle() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('btn-toggle-sidebar');
+            if (!sidebar || !toggleBtn) return;
+            
+            let isHidden = localStorage.getItem('sidebar-hidden') === 'true';
+            if (isHidden) sidebar.classList.add('hidden');
+            
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('hidden');
+                isHidden = sidebar.classList.contains('hidden');
+                localStorage.setItem('sidebar-hidden', isHidden);
+            });
+        })();
 
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -649,7 +1048,21 @@
         })();
 
         const scanMsgEl = document.getElementById('scan-msg');
-        const scanResultEl = document.getElementById('scan-result');
+        const scanResultOverlay = document.getElementById('scan-result-overlay');
+        const scanResultModal = document.getElementById('scan-result-modal');
+        var scanResultTimeout = null;
+
+        function showScanResult(html, className) {
+            if (scanResultTimeout) clearTimeout(scanResultTimeout);
+            scanResultModal.className = 'scan-result ' + className;
+            scanResultModal.innerHTML = html;
+            scanResultOverlay.classList.add('open');
+            // Auto-dismiss after 3 seconds and refocus input
+            scanResultTimeout = setTimeout(function() {
+                scanResultOverlay.classList.remove('open');
+                if (scanInput) scanInput.focus();
+            }, 3000);
+        }
 
         function formatScanTime(d) {
             if (!d) return '—';
@@ -667,39 +1080,87 @@
             scanMsgEl.textContent = 'Checking…';
             scanMsgEl.className = 'msg';
             scanMsgEl.style.display = 'block';
-            scanResultEl.style.display = 'none';
+            scanResultOverlay.classList.remove('open');
             scanInput.value = '';
             try {
                 var res = await api.scan(idNumber, scannerId);
                 scanMsgEl.style.display = 'none';
-                scanResultEl.style.display = 'block';
+                
                 if (res.userFound) {
                     if (res.action === 'ignored') {
-                        scanResultEl.className = 'scan-result';
-                        scanResultEl.innerHTML = '<h3>' + (res.message || 'Ignored') + '</h3>' +
+                        var html = '<h3>⏸️ ' + (res.message || 'Ignored') + '</h3>' +
                             '<div class="line"><strong>Name:</strong> ' + (res.user && res.user.name ? res.user.name : '—') + '</div>' +
                             '<div class="line"><strong>ID Number:</strong> ' + (res.user && res.user.idNumber ? res.user.idNumber : idNumber) + '</div>';
+                        showScanResult(html, '');
                     } else {
-                        scanResultEl.className = 'scan-result found';
-                        var timeLabel = res.action === 'timeIn' ? 'Time in' : 'Time out';
+                        var timeLabel = res.action === 'timeIn' ? '🟢 Time In' : '🔴 Time Out';
                         var timeVal = res.log && (res.action === 'timeIn' ? res.log.timeIn : res.log.timeOut);
-                        scanResultEl.innerHTML = '<h3>' + (res.message || 'Recorded') + '</h3>' +
+                        var html = '<h3>' + timeLabel + '</h3>' +
                             '<div class="line"><strong>Name:</strong> ' + (res.user && res.user.name ? res.user.name : '—') + '</div>' +
                             '<div class="line"><strong>ID Number:</strong> ' + (res.user && res.user.idNumber ? res.user.idNumber : idNumber) + '</div>' +
-                            '<div class="line"><strong>' + timeLabel + ':</strong> ' + formatScanTime(timeVal) + '</div>';
+                            '<div class="line"><strong>Time:</strong> ' + formatScanTime(timeVal) + '</div>';
+                        showScanResult(html, 'found');
                     }
                 } else {
                     lastScannedIdForRegister = idNumber;
-                    scanResultEl.className = 'scan-result not-found';
-                    scanResultEl.innerHTML = '<h3>No user found</h3><p class="line">ID: ' + idNumber + '</p>' +
-                        '<button type="button" class="btn btn-primary register-btn" id="btn-register-user">Register user</button>';
-                    document.getElementById('btn-register-user').onclick = openRegisterModal;
+                    var html = '<h3>❌ No user found</h3><p class="line">ID: <strong>' + idNumber + '</strong></p>' +
+                        '<button type="button" class="btn btn-primary register-btn" id="btn-register-user" style="font-size:1.1rem;padding:0.75rem 1.5rem;">Register New User</button>';
+                    showScanResult(html, 'not-found');
+                    // Wire up the register button (need to do this after DOM update)
+                    setTimeout(function() {
+                        var btn = document.getElementById('btn-register-user');
+                        if (btn) btn.onclick = function() {
+                            scanResultOverlay.classList.remove('open');
+                            openRegisterModal();
+                        };
+                    }, 50);
                 }
+                // Keep input focused for continuous scanning
+                setTimeout(function() { if (scanInput) scanInput.focus(); }, 100);
             } catch (err) {
-                scanMsgEl.style.display = 'block';
-                scanMsgEl.textContent = err.data && err.data.error ? err.data.error : (err.message || 'Scan failed.');
-                scanMsgEl.className = 'msg error';
-                scanInput.value = idNumber;
+                // Network error - queue for later sync
+                const isNetworkError = !err.status || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network');
+                if (isNetworkError && window.NDGM_SYNC) {
+                    const queued = window.NDGM_SYNC.queueScan(idNumber, scannerId);
+                    if (queued) {
+                        scanMsgEl.style.display = 'none';
+                        // Try to find user in cache to show modal
+                        var cachedUsers = window.NDGM_CACHE ? window.NDGM_CACHE.getUsers() : null;
+                        var user = null;
+                        if (cachedUsers && cachedUsers.length > 0) {
+                            user = cachedUsers.find(function(u) {
+                                return (u.idNumber || '').toLowerCase() === idNumber.toLowerCase();
+                            });
+                        }
+                        if (user) {
+                            var html = '<h3>📤 Queued (Offline)</h3>' +
+                                '<div class="line"><strong>Name:</strong> ' + (user.name || '—') + '</div>' +
+                                '<div class="line"><strong>ID Number:</strong> ' + (user.idNumber || idNumber) + '</div>' +
+                                '<div class="line"><strong>Time:</strong> ' + formatScanTime(new Date().toISOString()) + '</div>' +
+                                '<div class="line" style="color:#92400e;margin-top:0.5rem;">⚠️ Will sync when online</div>';
+                            showScanResult(html, '');
+                        } else {
+                            var html = '<h3>📤 Queued (Offline)</h3>' +
+                                '<div class="line"><strong>ID Number:</strong> ' + idNumber + '</div>' +
+                                '<div class="line"><strong>Time:</strong> ' + formatScanTime(new Date().toISOString()) + '</div>' +
+                                '<div class="line" style="color:#92400e;margin-top:0.5rem;">⚠️ Will sync when online</div>';
+                            showScanResult(html, '');
+                        }
+                    } else {
+                        scanMsgEl.style.display = 'block';
+                        scanMsgEl.textContent = 'Failed to queue scan (storage full)';
+                        scanMsgEl.className = 'msg error';
+                        // Keep input cleared even on storage error
+                    }
+                } else {
+                    scanMsgEl.style.display = 'block';
+                    scanMsgEl.textContent = err.data && err.data.error ? err.data.error : (err.message || 'Scan failed.');
+                    scanMsgEl.className = 'msg error';
+                    // Restore input only for non-network errors (validation errors, etc.)
+                    scanInput.value = idNumber;
+                }
+                // Keep input focused for next scan
+                setTimeout(function() { if (scanInput) scanInput.focus(); }, 100);
             }
         }
 
@@ -784,9 +1245,31 @@
             // Convert each log to one or two entries (timeIn -> In, timeOut -> Out)
             const entries = [];
             (logs || []).forEach(l => {
-                if (l.timeIn) entries.push({ time: l.timeIn, type: 'In', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—' });
-                if (l.timeOut) entries.push({ time: l.timeOut, type: 'Out', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—' });
+                if (l.timeIn) entries.push({ time: l.timeIn, type: 'In', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—', pending: false });
+                if (l.timeOut) entries.push({ time: l.timeOut, type: 'Out', name: l.userName || l.user?.name || '—', idNumber: l.userIdNumber || l.user?.idNumber || '—', scanner: l.rfidScannerId || l.rfidScannerId || '—', pending: false });
             });
+            
+            // Add queued scans as pending entries
+            if (window.NDGM_SYNC) {
+                const queue = window.NDGM_SYNC.getQueue();
+                const cachedUsers = window.NDGM_CACHE ? window.NDGM_CACHE.getUsers() : [];
+                queue.forEach(q => {
+                    // Try to find user name from cache
+                    let userName = '—';
+                    if (cachedUsers && cachedUsers.length > 0) {
+                        const user = cachedUsers.find(u => (u.idNumber || '').toLowerCase() === (q.userIdNumber || '').toLowerCase());
+                        if (user) userName = user.name;
+                    }
+                    entries.push({
+                        time: q.timestamp,
+                        type: 'In',
+                        name: userName,
+                        idNumber: q.userIdNumber || '—',
+                        scanner: q.rfidScannerId || '—',
+                        pending: true
+                    });
+                });
+            }
             return entries;
         }
 
@@ -808,15 +1291,18 @@
                 { key: 'name', label: 'Name' },
                 { key: 'idNumber', label: 'ID Number' },
                 { key: 'scanner', label: 'SC ID' },
+                { key: 'status', label: 'Status', noSort: true },
             ];
             cols.forEach(c => {
                 const th = document.createElement('th');
                 th.textContent = c.label;
-                th.style.cursor = 'pointer';
-                th.addEventListener('click', function () {
-                    if (logsSort.by === c.key) logsSort.dir = -logsSort.dir; else { logsSort.by = c.key; logsSort.dir = -1; }
-                    applyLogsUi();
-                });
+                if (!c.noSort) {
+                    th.style.cursor = 'pointer';
+                    th.addEventListener('click', function () {
+                        if (logsSort.by === c.key) logsSort.dir = -logsSort.dir; else { logsSort.by = c.key; logsSort.dir = -1; }
+                        applyLogsUi();
+                    });
+                }
                 headerRow.appendChild(th);
             });
             thead.appendChild(headerRow);
@@ -825,11 +1311,22 @@
             const tbody = document.createElement('tbody');
             entries.forEach(en => {
                 const tr = document.createElement('tr');
+                if (en.pending) {
+                    tr.style.background = '#fef3c7';
+                    tr.style.opacity = '0.85';
+                }
                 const tTime = document.createElement('td'); tTime.textContent = formatDateTime(en.time); tr.appendChild(tTime);
                 const tType = document.createElement('td'); tType.textContent = en.type; tr.appendChild(tType);
                 const tName = document.createElement('td'); tName.textContent = en.name; tr.appendChild(tName);
                 const tId = document.createElement('td'); tId.textContent = en.idNumber; tr.appendChild(tId);
                 const tSc = document.createElement('td'); tSc.textContent = en.scanner; tr.appendChild(tSc);
+                const tStatus = document.createElement('td');
+                if (en.pending) {
+                    tStatus.innerHTML = '<span style="color:#92400e;font-size:0.85rem;">⏳ Not Synced</span>';
+                } else {
+                    tStatus.innerHTML = '<span style="color:#16a34a;font-size:0.85rem;">✓ Synced</span>';
+                }
+                tr.appendChild(tStatus);
                 tbody.appendChild(tr);
             });
             table.appendChild(tbody);
@@ -884,8 +1381,23 @@
             try {
                 const logs = await api.get(path);
                 logsCache = logs || [];
+                // Cache successful fetch (only without date filters to keep cache general)
+                if (window.NDGM_CACHE && !dateInput.value) {
+                    window.NDGM_CACHE.setLogs(logsCache);
+                }
                 applyLogsUi();
             } catch (err) {
+                // Try to use cached data as fallback
+                if (window.NDGM_CACHE) {
+                    const cached = window.NDGM_CACHE.getLogs();
+                    if (cached && cached.length > 0) {
+                        console.log('Using cached logs (offline)');
+                        logsCache = cached;
+                        applyLogsUi();
+                        statusEl.textContent = '⚠️ Offline - showing cached data (' + cached.length + ' logs)';
+                        return;
+                    }
+                }
                 statusEl.textContent = '';
                 listEl.innerHTML = '<p class="msg error">' + (err.data?.error || err.message || 'Failed to load logs.') + '</p>';
             }
@@ -981,8 +1493,23 @@
             try {
                 const users = await api.getUsers();
                 usersCache = users || [];
+                // Cache successful fetch
+                if (window.NDGM_CACHE) {
+                    window.NDGM_CACHE.setUsers(usersCache);
+                }
                 applyUsersUi();
             } catch (err) {
+                // Try to use cached data as fallback
+                if (window.NDGM_CACHE) {
+                    const cached = window.NDGM_CACHE.getUsers();
+                    if (cached && cached.length > 0) {
+                        console.log('Using cached users (offline)');
+                        usersCache = cached;
+                        applyUsersUi();
+                        statusEl.textContent = '⚠️ Offline - showing cached data (' + cached.length + ' users)';
+                        return;
+                    }
+                }
                 statusEl.textContent = '';
                 listEl.innerHTML = '<p class="msg error">' + (err.data?.error || err.message || 'Failed to load users.') + '</p>';
             }
@@ -1044,6 +1571,11 @@
                 }
                 applyUsersUi();
                 closeUserModal();
+                // restore focus to prevent input lock
+                setTimeout(function() {
+                    const searchInput = document.getElementById('users-search');
+                    if (searchInput) searchInput.focus();
+                }, 100);
             } catch (err) {
                 userMsgEl.textContent = (err.data && err.data.error) || err.message || 'Save failed.';
                 userMsgEl.className = 'msg error';
@@ -1059,6 +1591,11 @@
                 usersCache = usersCache.filter(u => u._id !== editingUserId);
                 applyUsersUi();
                 closeUserModal();
+                // restore focus after modal close to prevent input lock
+                setTimeout(function() {
+                    const searchInput = document.getElementById('users-search');
+                    if (searchInput) searchInput.focus();
+                }, 100);
             } catch (err) {
                 userMsgEl.textContent = (err.data && err.data.error) || err.message || 'Delete failed.';
                 userMsgEl.className = 'msg error';
